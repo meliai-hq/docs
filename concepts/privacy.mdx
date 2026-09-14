@@ -1,7 +1,7 @@
 ---
-title: "Data Residency and Privacy on Meliai"
+title: "EU Data Residency, Privacy, and GDPR Compliance on Meliai"
 sidebarTitle: "Privacy"
-description: "Meliai routes requests exclusively through EU-based providers. Your data stays under European jurisdiction, is end-to-end encrypted, and is never used for training."
+description: "Every Meliai request stays within the EU — no US or APAC fallbacks. Your data is end-to-end encrypted, GDPR-compliant, and never used for model training."
 ---
 
 Data sovereignty is a first-class design principle at Meliai, not an afterthought. Every inference request is routed exclusively to providers operating within the European Union or European Economic Area, keeping your data under European jurisdiction at all times. Meliai is GDPR-compliant by architecture: there are no US or APAC fallbacks, no cross-border data transfers, and no use of your data to train or fine-tune any model.
@@ -11,10 +11,10 @@ Data sovereignty is a first-class design principle at Meliai, not an afterthough
 Meliai maintains a network of 11+ vetted providers distributed across 8 EU/EEA countries. When you send a request, the routing layer selects from this pool only — there is no fallback path to infrastructure outside Europe, regardless of provider availability or load.
 
 <CardGroup cols={2}>
-  <Card title="11+ European providers" icon="server">
+  <Card title="11+ European providers" icon="server" href="/concepts/routing">
     Providers span data centres in countries including Germany, France, the Netherlands, Finland, and more — all within EU/EEA jurisdiction.
   </Card>
-  <Card title="No US or APAC routing" icon="shield-check">
+  <Card title="No US or APAC routing" icon="shield-check" href="/concepts/routing">
     Meliai's routing table contains only European endpoints. Your traffic cannot be redirected outside the EU, even during failover.
   </Card>
 </CardGroup>

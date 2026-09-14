@@ -1,14 +1,14 @@
 ---
-title: "Meliai API Reference — Endpoints and Schemas"
+title: "Meliai API Reference: Endpoints and Response Schemas"
 sidebarTitle: "Overview"
-description: "Complete reference for the Meliai API. Two compatible shapes — OpenAI and Anthropic — one base URL, one API key, and Meliai-specific routing and impact fields."
+description: "All 19 Meliai API endpoints — OpenAI, Anthropic, Batch, and Files — plus routing flavors and the environment_impact and billing_cost response fields."
 ---
 
 The Meliai API exposes two compatible shapes — OpenAI and Anthropic — through a single base URL, so you can migrate existing clients with a one-line change. Every request authenticates with a single `sk-mel-<KEY>` API key, and every inference response carries Meliai-specific fields for routing metadata, environmental impact, and billing cost alongside the standard response body.
 
 ## Base URL
 
-```
+```text
 https://api.meliai.ai
 ```
 

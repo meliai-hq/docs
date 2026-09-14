@@ -1,7 +1,7 @@
 ---
 title: "Meliai Pricing: Energy-Based and Credit-Based Billing"
 sidebarTitle: "Pricing"
-description: "Meliai bills by energy consumption (kWh) or credits depending on the model. Every response includes a billing_cost field showing exactly what was charged."
+description: "Meliai bills per request: energy consumption (kWh) or credits, depending on the model. Every response includes a billing_cost field with exact charges."
 ---
 
 Meliai takes a transparent, per-request approach to billing: every API response includes a `billing_cost` field that tells you exactly what was charged for that call — no aggregated end-of-month surprises. Pricing is either energy-based (measured in kilowatt-hours) or credit-based depending on the model, and you can always see which mode applied by inspecting the `paid_with` field.
@@ -11,10 +11,10 @@ Meliai takes a transparent, per-request approach to billing: every API response 
 Meliai supports two billing modes:
 
 <CardGroup cols={2}>
-  <Card title="Energy billing" icon="bolt">
+  <Card title="Energy billing" icon="bolt" href="/guides/environmental-impact">
     Charges are calculated from the actual energy consumed by the inference workload, measured in **kWh**. This maps directly to the `environment_impact.energy_kwh` value in the response and is the default for most text-generation models.
   </Card>
-  <Card title="Credit billing" icon="coins">
+  <Card title="Credit billing" icon="coins" href="/concepts/models">
     Some models are billed in **Meliai credits** — a fixed unit that abstracts over provider-specific pricing. Credits are pre-purchased and drawn down per request.
   </Card>
 </CardGroup>

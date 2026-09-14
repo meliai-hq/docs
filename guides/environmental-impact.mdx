@@ -52,6 +52,10 @@ Every chat completion response, embedding response, and other inference response
   ISO 3166-1 alpha-2 country code of the datacenter that processed the request, for example `"FR"`, `"DE"`, or `"FI"`.
 </ResponseField>
 
+<Note>
+  Every Meliai inference response also includes a `billing_cost` object at the top level alongside `environment_impact`. This field carries the monetary cost of the request broken down by token usage, letting you track both financial and environmental spend in a single response.
+</Note>
+
 ## Minimising Environmental Impact
 
 Meliai's `:eco` routing suffix biases the automatic provider selection toward datacenters with higher renewable energy percentages, lower grid carbon intensity, and better PUE scores. Switch to `:eco` by appending the suffix to your model ID — no other changes are required.

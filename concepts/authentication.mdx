@@ -1,7 +1,7 @@
 ---
-title: "Authenticate Your Requests to the Meliai API"
+title: "Authenticate Requests to the Meliai API with API Keys"
 sidebarTitle: "Authentication"
-description: "Meliai uses API keys prefixed with sk-mel-. Pass your key as a Bearer token or x-api-key header on every request."
+description: "Meliai uses API keys prefixed with sk-mel-. Authenticate via Authorization Bearer or x-api-key — both headers work on every endpoint."
 ---
 
 Every request to the Meliai API must be authenticated with an API key. Keys are tied to your account and control access to all endpoints — from chat completions to batch jobs. Meliai follows the same header conventions as OpenAI and Anthropic, so if you're migrating an existing client you only need to swap the key value and the base URL.
@@ -81,6 +81,18 @@ curl https://api.meliai.ai/v1/chat/completions \
 ```
 
 </CodeGroup>
+
+If you prefer the `x-api-key` header style (common with Anthropic clients), use:
+
+```bash
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "x-api-key: $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen/qwen3-235b-a22b",
+    "messages": [{ "role": "user", "content": "Hello!" }]
+  }'
+```
 
 ## Storing your key safely
 

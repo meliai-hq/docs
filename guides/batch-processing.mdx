@@ -1,7 +1,7 @@
 ---
 title: "Process Requests in Bulk with the Meliai Batch API"
 sidebarTitle: "Batch Processing"
-description: "Use the Meliai Batch API to run thousands of inference requests asynchronously at reduced cost. Upload a JSONL file, submit the batch, and poll for results."
+description: "Use the Meliai Batch API to run thousands of inference requests asynchronously at lower cost. Upload a JSONL file, submit the batch, and poll for results."
 ---
 
 The Batch API is designed for workloads where you have a large number of requests to process but do not need the results immediately. Common use cases include bulk document classification, dataset annotation, offline evaluation runs, nightly summarisation jobs, and any pipeline where throughput matters more than latency. Because batch requests are processed asynchronously and can be scheduled during off-peak periods, they are significantly cheaper than synchronous calls — especially when combined with the `:batch` routing suffix.

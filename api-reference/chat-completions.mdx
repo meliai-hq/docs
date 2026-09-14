@@ -1,7 +1,7 @@
 ---
 title: "POST /v1/chat/completions — OpenAI-Compatible Chat"
 sidebarTitle: "Chat Completions"
-description: "POST /v1/chat/completions — generate chat responses with tools, vision, structured output, and streaming. OpenAI-compatible with Meliai routing and impact fields."
+description: "Send chat requests with tools, streaming, and structured output via POST /v1/chat/completions. OpenAI-compatible, EU-routed, with impact and cost fields."
 ---
 
 The `/v1/chat/completions` endpoint is the primary inference interface on Meliai. It accepts the same request shape as the OpenAI Chat Completions API, so you can migrate an existing integration by swapping `base_url` and your API key — no other code changes required. Every response includes `environment_impact` and `billing_cost` blocks, giving you per-call visibility into energy use, carbon emissions, and spend.
@@ -251,7 +251,7 @@ A successful non-streaming response returns HTTP `200` with the following JSON b
     <ResponseField name="water_liters" type="number">Estimated water consumption in liters.</ResponseField>
     <ResponseField name="renewable_percent" type="number">Share of energy from renewable sources at the serving location.</ResponseField>
     <ResponseField name="pue" type="number">Power Usage Effectiveness of the data centre.</ResponseField>
-    <ResponseField name="provider_id" type="string">Internal identifier of the EU provider that served the request.</ResponseField>
+    <ResponseField name="provider_id" type="string">Identifier of the EU provider that served the request.</ResponseField>
     <ResponseField name="location" type="string">City and country of the serving data centre.</ResponseField>
   </Expandable>
 </ResponseField>

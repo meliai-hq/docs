@@ -1,7 +1,7 @@
 ---
-title: "POST /v1/messages — Anthropic-Compatible Chat"
+title: "POST /v1/messages — Anthropic-Compatible Chat API"
 sidebarTitle: "Messages"
-description: "POST /v1/messages — Anthropic Messages API shape on Meliai. Use the Anthropic SDK or any Anthropic-compatible client with your Meliai API key and base URL."
+description: "Use the Anthropic SDK with Meliai via POST /v1/messages. Point any Anthropic-compatible client at Meliai's base URL with your sk-mel- API key."
 ---
 
 The `/v1/messages` endpoint mirrors the Anthropic Messages API, letting you use the official `anthropic` Python or TypeScript SDK — or any Anthropic-compatible client — without code changes. Point the client at `https://api.meliai.ai` with your `sk-mel-<KEY>` API key and every request is routed across Meliai's European provider network. Claude model identifiers such as `claude-sonnet-4` are accepted as aliases and mapped to equivalent open-weight models running entirely on EU infrastructure.

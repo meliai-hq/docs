@@ -1,7 +1,7 @@
 ---
-title: "Meliai API Error Codes and Troubleshooting"
+title: "Meliai API Errors: Codes, Messages, and Retry Logic"
 sidebarTitle: "Errors"
-description: "All Meliai API errors use a consistent JSON shape with a stable error code. Match on code for programmatic handling and use message for human-readable context."
+description: "Meliai API errors include a stable code field for programmatic handling. Covers AUTH_1001, RATE_2001, INFERENCE_3103, and exponential backoff retry logic."
 ---
 
 When a request cannot be completed, Meliai returns a JSON error object in the response body alongside an appropriate HTTP status code. The `code` field is a stable, machine-readable identifier you can match against in your application logic. The `message` field is human-readable and intended for logging and debugging — its wording may change between API versions. The optional `details` object provides structured context such as token counts or limit values.

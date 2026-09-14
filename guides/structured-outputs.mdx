@@ -1,7 +1,7 @@
 ---
-title: "Get Structured JSON Output from Meliai Models"
+title: "Structured Outputs and JSON Schema Mode with Meliai"
 sidebarTitle: "Structured Outputs"
-description: "Use response_format to enforce valid JSON or a strict JSON schema in Meliai chat completions, ideal for data extraction, classification, and automated pipelines."
+description: "Use response_format to enforce valid JSON or a strict JSON schema in Meliai chat completions for data extraction, classification, and automated pipelines."
 ---
 
 Structured outputs give you machine-readable JSON directly from a model rather than freeform prose that you must parse yourself. This is particularly useful for data extraction pipelines, classification tasks, form filling, automated scoring, and any workflow where downstream code needs to consume the model's output programmatically. Meliai supports two levels of structure enforcement through the `response_format` parameter: a permissive JSON mode that guarantees valid JSON, and a strict schema mode that validates against a JSON Schema you supply.

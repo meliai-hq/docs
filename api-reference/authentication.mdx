@@ -1,5 +1,5 @@
 ---
-title: "API Authentication — Pass Your Meliai API Key"
+title: "Meliai API Authentication — Keys and Header Formats"
 sidebarTitle: "Authentication"
 description: "Meliai accepts API keys as a Bearer token or x-api-key header. Both formats work on every endpoint. Keys are created in the Meliai dashboard."
 ---
@@ -10,11 +10,11 @@ Every request to the Meliai API must include your API key. Meliai accepts two he
 
 Both of the following headers are equivalent and accepted on all Meliai endpoints:
 
-```
+```http
 Authorization: Bearer sk-mel-<YOUR_API_KEY>
 ```
 
-```
+```http
 x-api-key: sk-mel-<YOUR_API_KEY>
 ```
 

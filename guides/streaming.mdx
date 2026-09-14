@@ -1,7 +1,7 @@
 ---
-title: "Stream Chat Responses in Real Time with Meliai"
+title: "Stream Chat Responses in Real Time with Meliai API"
 sidebarTitle: "Streaming"
-description: "Enable streaming on Meliai chat completions to receive tokens as they are generated using server-sent events, compatible with the OpenAI SDK streaming interface."
+description: "Enable Meliai streaming to receive chat completion tokens as they are generated via server-sent events, fully compatible with the OpenAI SDK interface."
 ---
 
 Streaming lets your application display model output token-by-token as it is generated rather than waiting for the complete response. This dramatically improves perceived latency and gives users immediate feedback — particularly valuable for conversational interfaces, long-form generation, and anything where time-to-first-token matters. Meliai's streaming implementation follows the OpenAI server-sent events (SSE) protocol, so any client already using OpenAI streaming works without modification.

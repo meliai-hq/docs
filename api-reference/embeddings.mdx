@@ -1,7 +1,7 @@
 ---
 title: "POST /v1/embeddings — Generate Vector Embeddings"
 sidebarTitle: "Embeddings"
-description: "POST /v1/embeddings — generate vector embeddings from text for semantic search, RAG, and similarity tasks. OpenAI-compatible with European infrastructure."
+description: "POST /v1/embeddings converts text into vectors for semantic search, RAG, and similarity tasks. OpenAI-compatible and runs on European infrastructure."
 ---
 
 The `/v1/embeddings` endpoint converts text into dense numerical vectors that capture semantic meaning. Use embeddings to power semantic search, Retrieval-Augmented Generation (RAG) pipelines, document clustering, duplicate detection, and cross-lingual similarity tasks. The endpoint is OpenAI-compatible, so any library or framework that targets the OpenAI embeddings API works out of the box by pointing `base_url` at Meliai. Embedding requests default to the `:price` routing flavor, keeping bulk vectorisation costs low.

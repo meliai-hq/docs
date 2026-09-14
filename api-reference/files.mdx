@@ -1,7 +1,7 @@
 ---
-title: "Files API — Upload and Manage Batch Input Files"
+title: "Files API — Upload and Manage Files for Batch Jobs"
 sidebarTitle: "Files"
-description: "POST /v1/files uploads files for use with the Batch API. Manage uploads with list, retrieve, download, and delete endpoints."
+description: "POST /v1/files uploads files for Meliai's Batch API. List, retrieve, download content, and delete files — all stored exclusively on EU infrastructure."
 ---
 
 The Files API provides storage for the JSONL input files that power Meliai's Batch API. Before you can create a batch job, you must upload a JSONL file containing all the individual inference requests you want to process. Meliai stores the file on your behalf, returns a `file_id`, and lets you list, inspect, download, and delete your files at any time. All files are scoped to your API key and never leave EU infrastructure.

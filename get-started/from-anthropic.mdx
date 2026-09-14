@@ -1,5 +1,5 @@
 ---
-title: "Switch from Anthropic Claude to Meliai"
+title: "Switch from Anthropic Claude SDK to Meliai Inference"
 sidebarTitle: "From Anthropic"
 description: "Point the Anthropic SDK at Meliai by setting ANTHROPIC_BASE_URL and your API key. Claude model names are mapped to open-weight equivalents automatically."
 ---
@@ -34,7 +34,7 @@ Meliai exposes a fully Anthropic-compatible endpoint at `/v1/messages`, acceptin
     from anthropic import Anthropic
 
     client = Anthropic(
-        api_key=os.environ["MELIAI_API_KEY"],
+        api_key=os.environ["ANTHROPIC_API_KEY"],
         base_url="https://api.meliai.ai",
     )
 
@@ -62,7 +62,7 @@ Meliai exposes a fully Anthropic-compatible endpoint at `/v1/messages`, acceptin
 
     ```bash
     curl https://api.meliai.ai/v1/models \
-      -H "Authorization: Bearer $MELIAI_API_KEY"
+      -H "Authorization: Bearer $ANTHROPIC_API_KEY"
     ```
   </Step>
 </Steps>

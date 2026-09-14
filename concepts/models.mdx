@@ -1,7 +1,7 @@
 ---
 title: "Available Models on Meliai — 60+ Open-Weight Models"
 sidebarTitle: "Models"
-description: "Browse Meliai's catalog of 60+ open-weight models including Llama, Mistral, DeepSeek, Qwen, FLUX, and Whisper, all running on European infrastructure."
+description: "Browse Meliai's catalog of 60+ open-weight models — Llama, Mistral, DeepSeek, Qwen, FLUX, Whisper, and more, all on European infrastructure."
 ---
 
 Meliai gives you access to more than 60 open-weight models spanning text generation, image synthesis, audio transcription, embeddings, and reranking — all served exclusively from European infrastructure. Because every model in the catalog is open-weight, your requests are never routed to US- or APAC-based proprietary model APIs. The catalog is continuously updated as new model families are released and validated on the platform.
@@ -9,19 +9,19 @@ Meliai gives you access to more than 60 open-weight models spanning text generat
 ## Model categories
 
 <CardGroup cols={2}>
-  <Card title="Text generation" icon="message">
+  <Card title="Text generation" icon="message" href="/api-reference/chat-completions">
     Chat, instruction-following, and reasoning models from **Llama**, **Mistral**, **DeepSeek**, **Qwen**, **GLM**, and **Kimi**. Suitable for chat completions, agentic pipelines, RAG, and code generation.
   </Card>
-  <Card title="Image generation" icon="image">
+  <Card title="Image generation" icon="image" href="/api-reference/images">
     Diffusion models from the **FLUX** family for text-to-image generation via the `/v1/images/generations` endpoint.
   </Card>
-  <Card title="Audio / speech" icon="microphone">
+  <Card title="Audio / speech" icon="microphone" href="/api-reference/audio">
     **Whisper** for automatic speech recognition and **Voxtral** for advanced audio understanding, available via `/v1/audio/transcriptions`.
   </Card>
-  <Card title="Embeddings" icon="brackets-curly">
+  <Card title="Embeddings" icon="brackets-curly" href="/api-reference/embeddings">
     Dense vector embedding models for semantic search, clustering, and retrieval-augmented generation via `/v1/embeddings`.
   </Card>
-  <Card title="Reranking" icon="arrow-up-arrow-down">
+  <Card title="Reranking" icon="arrow-up-arrow-down" href="/api-reference/rerank">
     Cross-encoder reranking models that score document–query relevance for improved RAG precision via `/v1/rerank`.
   </Card>
 </CardGroup>
@@ -36,7 +36,7 @@ The easiest way to explore the full catalog is the [Meliai Hub](https://meliai.a
 
 Fetch the live catalog programmatically with a `GET /v1/models` request:
 
-```bash curl
+```bash
 curl https://api.meliai.ai/v1/models \
   -H "Authorization: Bearer $MELIAI_API_KEY"
 ```
@@ -45,7 +45,7 @@ The response is an OpenAI-compatible model list object. Each entry includes the 
 
 ### Look up a single model
 
-```bash curl
+```bash
 curl https://api.meliai.ai/v1/models/qwen/qwen3-235b-a22b \
   -H "Authorization: Bearer $MELIAI_API_KEY"
 ```
