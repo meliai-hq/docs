@@ -1,133 +1,142 @@
 ---
-title: "Quickstart: Make Your First Meliai API Call in Minutes"
+title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "Make your first Meliai API call using the OpenAI SDK. Get an API key, install the SDK, and run a real inference request in under five minutes."
+description: "Get started with Meliai"
+icon: "rocket"
 ---
 
-Meliai is OpenAI-SDK-compatible, so you can go from zero to your first EU-routed inference call in just a few minutes. This guide walks you through getting an API key, installing the SDK, making a real request, and reading the response — including the environmental impact data that comes back with every completion.
+Use the OpenAI SDK or send an HTTP request to make your first Meliai API call. Choose the approach that fits your application.
 
-<Steps>
-  <Step title="Get an API key">
-    Head to [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys) and create a new key. Your key will look like `sk-mel-...`.
+| Approach | Best for |
+| --- | --- |
+| [OpenAI SDK](#install-the-openai-sdk) | Existing Python or Node.js applications |
+| [HTTP API](#make-your-first-call) | Any language with an HTTP client |
+| [Integrations](/integrations/overview) | LangChain, Vercel AI SDK, and other tools |
 
-    Store it as an environment variable so you never hard-code credentials in source files:
+## Get an API key
 
-    ```bash
-    export MELIAI_API_KEY="sk-mel-<YOUR_KEY>"
-    ```
+Head to [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys) and create a new key. Your key will look like `sk-mel-...`.
 
-    <Tip>
-      Add that line to your shell profile (`.bashrc`, `.zshrc`, etc.) so the variable persists across sessions.
-    </Tip>
-  </Step>
+Store it as an environment variable so you never hard-code credentials in source files:
 
-  <Step title="Install the OpenAI SDK">
-    Meliai is fully compatible with the official OpenAI SDK — no separate package required.
+```bash
+export MELIAI_API_KEY="sk-mel-<YOUR_KEY>"
+```
 
-    <CodeGroup>
-      ```bash Python
-      pip install openai
-      ```
+<Tip>
+  Add that line to your shell profile (`.bashrc`, `.zshrc`, etc.) so the variable persists across sessions.
+</Tip>
 
-      ```bash Node.js
-      npm install openai
-      ```
-    </CodeGroup>
-  </Step>
 
-  <Step title="Make your first call">
-    Point the SDK at Meliai by setting `base_url` to `https://api.meliai.ai/v1` and supplying your Meliai API key. Everything else stays exactly the same as any OpenAI SDK usage.
+## Install the OpenAI SDK
 
-    <CodeGroup>
-      ```python Python
-      import os
-      from openai import OpenAI
+Meliai is fully compatible with the official OpenAI SDK — no separate package required.
 
-      client = OpenAI(
-          api_key=os.environ["MELIAI_API_KEY"],
-          base_url="https://api.meliai.ai/v1",
-      )
+<CodeGroup>
+  ```bash Python
+  pip install openai
+  ```
 
-      response = client.chat.completions.create(
-          model="<MODEL_ID>",
-          messages=[{"role": "user", "content": "Name three European capitals."}],
-      )
-      print(response.choices[0].message.content)
-      ```
+  ```bash Node.js
+  npm install openai
+  ```
+</CodeGroup>
 
-      ```javascript Node.js
-      import OpenAI from "openai";
 
-      const client = new OpenAI({
-        apiKey: process.env.MELIAI_API_KEY,
-        baseURL: "https://api.meliai.ai/v1",
-      });
+## Make your first call
 
-      const response = await client.chat.completions.create({
-        model: "<MODEL_ID>",
-        messages: [{ role: "user", content: "Name three European capitals." }],
-      });
-      console.log(response.choices[0].message.content);
-      ```
+Point the SDK at Meliai by setting `base_url` to `https://api.meliai.ai/v1` and supplying your Meliai API key. Everything else stays exactly the same as any OpenAI SDK usage.
 
-      ```bash curl
-      curl https://api.meliai.ai/v1/chat/completions \
-        -H "Authorization: Bearer $MELIAI_API_KEY" \
-        -H "Content-Type: application/json" \
-        -d '{
-          "model": "<MODEL_ID>",
-          "messages": [{"role": "user", "content": "Name three European capitals."}]
-        }'
-      ```
-    </CodeGroup>
+<CodeGroup>
+  ```python Python
+  import os
+  from openai import OpenAI
 
-    <Note>
-      Replace `<MODEL_ID>` with an actual model identifier from the Meliai catalog. You can browse models at [meliai.ai/hub](https://meliai.ai/hub) or fetch them programmatically with `GET /v1/models`. Model IDs support routing suffixes such as `:speed` or `:eco` — see the [Routing](/concepts/routing) page for details.
-    </Note>
-  </Step>
+  client = OpenAI(
+      api_key=os.environ["MELIAI_API_KEY"],
+      base_url="https://api.meliai.ai/v1",
+  )
 
-  <Step title="Read the response">
-    Meliai returns a standard OpenAI-shaped response body, extended with two additional top-level fields: `environment_impact` and `billing_cost`.
+  response = client.chat.completions.create(
+      model="<MODEL_ID>",
+      messages=[{"role": "user", "content": "Name three European capitals."}],
+  )
+  print(response.choices[0].message.content)
+  ```
 
-    ```json
-    {
-      "id": "chatcmpl-...",
+  ```javascript Node.js
+  import OpenAI from "openai";
+
+  const client = new OpenAI({
+    apiKey: process.env.MELIAI_API_KEY,
+    baseURL: "https://api.meliai.ai/v1",
+  });
+
+  const response = await client.chat.completions.create({
+    model: "<MODEL_ID>",
+    messages: [{ role: "user", content: "Name three European capitals." }],
+  });
+  console.log(response.choices[0].message.content);
+  ```
+
+  ```bash curl
+  curl https://api.meliai.ai/v1/chat/completions \
+    -H "Authorization: Bearer $MELIAI_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
       "model": "<MODEL_ID>",
-      "choices": [
-        {
-          "index": 0,
-          "message": {
-            "role": "assistant",
-            "content": "Berlin, Paris, Madrid."
-          },
-          "finish_reason": "stop"
-        }
-      ],
-      "usage": {
-        "prompt_tokens": 14,
-        "completion_tokens": 8,
-        "total_tokens": 22
-      },
-      "environment_impact": {
-        "energy_kwh": 0.00015,
-        "carbon_g_co2": 0.06,
-        "water_liters": 0.0002,
-        "renewable_percent": 85,
-        "pue": 1.18,
-        "provider_id": "ovhcloud",
-        "location": "FR"
-      },
-      "billing_cost": {
-        "energy": "0.0008",
-        "credits": "0.0",
-        "paid_with": "energy"
-      }
-    }
-    ```
+      "messages": [{"role": "user", "content": "Name three European capitals."}]
+    }'
+  ```
+</CodeGroup>
 
-    The `environment_impact` block tells you exactly how much energy, carbon, and water this specific request consumed, which EU provider served it, and what share of the facility's power came from renewables. The `billing_cost` block shows the cost broken down by energy charges and any credits applied.
-  </Step>
-</Steps>
+<Note>
+  Replace `<MODEL_ID>` with an actual model identifier from the Meliai catalog. You can browse models at [meliai.ai/hub](https://meliai.ai/hub) or fetch them programmatically with `GET /v1/models`. Model IDs support routing suffixes such as `:speed` or `:eco` — see the [Routing](/concepts/routing) page for details.
+</Note>
+
+
+## Read the response
+
+Meliai returns a standard OpenAI-shaped response body, extended with two additional top-level fields: `environment_impact` and `billing_cost`.
+
+```json
+{
+  "id": "chatcmpl-...",
+  "model": "<MODEL_ID>",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Berlin, Paris, Madrid."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 8,
+    "total_tokens": 22
+  },
+  "environment_impact": {
+    "energy_kwh": 0.00015,
+    "carbon_g_co2": 0.06,
+    "water_liters": 0.0002,
+    "renewable_percent": 85,
+    "pue": 1.18,
+    "provider_id": "ovhcloud",
+    "location": "FR"
+  },
+  "billing_cost": {
+    "energy": "0.0008",
+    "credits": "0.0",
+    "paid_with": "energy"
+  }
+}
+```
+
+The `environment_impact` block tells you exactly how much energy, carbon, and water this specific request consumed, which EU provider served it, and what share of the facility's power came from renewables. The `billing_cost` block shows the cost broken down by energy charges and any credits applied.
+
 
 ## Where to go next
 

@@ -1,45 +1,68 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Meliai",
-  "theme": "luma",
+  "theme": "mint",
   "colors": {
-    "primary": "#ef7025",
-    "light": "#eec9bc",
-    "dark": "#4fa1ab"
+    "primary": "#7624F4",
+    "light": "#7624F4",
+    "dark": "#C8FF00"
   },
   "navbar": {
+    "links": [
+      {
+        "label": "Usage",
+        "href": "https://console.meliai.app/usage"
+      },
+      {
+        "label": "Subscriptions",
+        "href": "https://console.meliai.app/subscriptions"
+      },
+      {
+        "label": "BYOO",
+        "href": "https://console.meliai.app/hosted-accounts"
+      }
+    ],
     "primary": {
       "type": "button",
-      "label": "Get API Key",
-      "href": "https://meliai.ai/account/api/keys"
+      "label": "Console",
+      "href": "https://console.meliai.app"
     }
   },
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Docs",
+        "icon": "book-open",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Overview",
+            "icon": "compass",
             "pages": [
-              "introduction",
               "quickstart",
-              "get-started/from-openai",
-              "get-started/from-anthropic"
-            ]
-          },
-          {
-            "group": "Core Concepts",
-            "pages": [
-              "concepts/routing",
-              "concepts/models",
+              "introduction",
               "concepts/authentication",
-              "concepts/pricing",
-              "concepts/privacy"
+              {
+                "group": "Migration",
+                "icon": "right-left",
+                "pages": [
+                  "get-started/from-openai",
+                  "get-started/from-anthropic"
+                ]
+              }
             ]
           },
           {
-            "group": "Guides",
+            "group": "Models & Routing",
+            "icon": "shuffle",
+            "pages": [
+              "concepts/models",
+              "concepts/routing",
+              "concepts/pricing"
+            ]
+          },
+          {
+            "group": "Features",
+            "icon": "layer-group",
             "pages": [
               "guides/streaming",
               "guides/tool-calling",
@@ -50,12 +73,10 @@
             ]
           },
           {
-            "group": "Integrations",
+            "group": "Privacy",
+            "icon": "shield-halved",
             "pages": [
-              "integrations/overview",
-              "integrations/langchain",
-              "integrations/vercel-ai-sdk",
-              "integrations/n8n"
+              "concepts/privacy"
             ]
           }
         ]
@@ -95,14 +116,64 @@
               "api-reference/models"
             ]
           }
+        ],
+        "icon": "code"
+      },
+      {
+        "tab": "Integrations",
+        "icon": "cubes",
+        "groups": [
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/langchain",
+              "integrations/vercel-ai-sdk",
+              "integrations/n8n"
+            ]
+          }
         ]
       }
     ]
   },
   "footer": {
     "socials": {
-      "discord": "https://discord.gg/meliai",
-      "github": "https://github.com/meliai"
+      "github": "https://github.com/meliai-hq"
     }
-  }
+  },
+  "description": "Meliai documentation, API reference, and integration guides.",
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "fonts": {
+    "family": "Plus Jakarta Sans",
+    "weight": 400
+  },
+  "background": {
+    "color": {
+      "light": "#FCFCFE",
+      "dark": "#03080A"
+    }
+  },
+  "styling": {
+    "eyebrows": "section",
+    "codeblocks": "system"
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity"
+    ],
+    "display": "header"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://console.meliai.app"
+  },
+  "favicon": "/logo/mark.png"
 }
