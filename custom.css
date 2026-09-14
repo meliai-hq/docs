@@ -1,0 +1,33 @@
+/* Keep the Mintlify theme's accents consistent across navigation and content. */
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
+
+html.dark,
+[data-theme='dark'] {
+  --primary: 200 255 0;
+  --primary-light: 200 255 0;
+  --primary-dark: 200 255 0;
+  --light-primary: 200 255 0;
+  --primary-foreground: 3 8 10;
+  --default-border-color: rgb(252 252 254 / 0.14);
+}
+
+code, pre, pre code {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+::selection { background: rgb(118 36 244 / 0.14); }
+html.dark ::selection { background: rgb(200 255 0 / 0.14); color: inherit; }
+
+.nav-logo { height: 1.5rem; }
+#sidebar a[aria-current='page'],
+[data-component-part='code-block-root'] { border-radius: 8px; }
+
+/* Mintlify's default CTA uses white text in both color modes. */
+#topbar-cta-button .bg-primary-dark { background-color: rgb(var(--primary)); }
+html.dark #topbar-cta-button .text-white { color: #03080A; }
+#topbar-cta-button svg { display: none; }
+#topbar-cta-button a { padding-inline: 0.75rem; }
+
+html.dark #sidebar button[aria-expanded] svg {
+  color: rgb(252 252 254 / 0.65);
+}
