@@ -1,0 +1,186 @@
+---
+title: "POST /v1/audio/transcriptions — Speech to Text"
+sidebarTitle: "Audio"
+description: "POST /v1/audio/transcriptions — transcribe audio files to text using Whisper and Voxtral models on Meliai's European infrastructure."
+---
+
+The `/v1/audio/transcriptions` endpoint converts speech recordings into text using open-weight transcription models including Whisper and Voxtral, all served from Meliai's European provider network. The endpoint accepts `multipart/form-data` uploads and is compatible with the OpenAI Audio Transcriptions API, so existing integrations migrate with a single `base_url` change. You can optionally specify the language and provide a prompt to improve accuracy for domain-specific vocabulary.
+
+## Endpoint
+
+```
+POST https://api.meliai.ai/v1/audio/transcriptions
+```
+
+**Authorization:** `Bearer sk-mel-<KEY>` via `Authorization` header.  
+**Content-Type:** `multipart/form-data`
+
+---
+
+## Parameters
+
+<ParamField body="model" type="string" required>
+  The transcription model ID to use. Whisper-family and Voxtral models available on the Meliai network are listed under `GET /v1/models`. Check model capabilities for supported languages and audio formats.
+</ParamField>
+
+<ParamField body="file" type="file" required>
+  The audio file to transcribe, submitted as a `multipart/form-data` field. Supported formats include MP3, MP4, MPEG, MPGA, M4A, WAV, and WEBM. Maximum file size depends on the model and provider.
+</ParamField>
+
+<ParamField body="language" type="string">
+  ISO 639-1 language code of the audio (e.g. `"en"`, `"de"`, `"fr"`, `"nl"`). When omitted, the model auto-detects the language. Providing the correct language code improves accuracy and reduces latency.
+</ParamField>
+
+<ParamField body="response_format" type="string">
+  Format of the transcription output:
+  - `"json"` — `{"text": "..."}` (default)
+  - `"text"` — plain text string
+  - `"srt"` — SubRip subtitle format with timestamps
+  - `"vtt"` — WebVTT subtitle format with timestamps
+</ParamField>
+
+<ParamField body="prompt" type="string">
+  Optional context string to guide the transcription. Use this to provide domain-specific vocabulary, speaker names, or abbreviations the model should recognise. The prompt is not included in the output.
+</ParamField>
+
+---
+
+## Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/audio/transcriptions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -F model="<WHISPER_MODEL_ID>" \
+  -F file="@recording.mp3" \
+  -F language="en"
+```
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+with open("recording.mp3", "rb") as f:
+    transcript = client.audio.transcriptions.create(
+        model="<WHISPER_MODEL_ID>",
+        file=f,
+        language="en",
+    )
+print(transcript.text)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const transcript = await client.audio.transcriptions.create({
+  model: "<WHISPER_MODEL_ID>",
+  file: fs.createReadStream("recording.mp3"),
+  language: "en",
+});
+console.log(transcript.text);
+```
+
+</CodeGroup>
+
+### Request subtitles
+
+Pass `response_format: "srt"` or `"vtt"` to receive timestamped subtitles — useful for captioning video content.
+
+<CodeGroup>
+
+```python Python
+with open("presentation.mp4", "rb") as f:
+    subtitles = client.audio.transcriptions.create(
+        model="<WHISPER_MODEL_ID>",
+        file=f,
+        response_format="vtt",
+    )
+print(subtitles)
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/audio/transcriptions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -F model="<WHISPER_MODEL_ID>" \
+  -F file="@presentation.mp4" \
+  -F response_format="vtt"
+```
+
+</CodeGroup>
+
+### Domain-specific vocabulary
+
+Use the `prompt` field to improve recognition of unusual terms:
+
+```python
+with open("medical_dictation.mp3", "rb") as f:
+    transcript = client.audio.transcriptions.create(
+        model="<WHISPER_MODEL_ID>",
+        file=f,
+        language="en",
+        prompt="Medical dictation. Terms: GDPR, DPIA, pseudonymisation, EHR.",
+    )
+print(transcript.text)
+```
+
+---
+
+## Response
+
+For the default `"json"` response format:
+
+```json
+{
+  "text": "Transcribed text here.",
+  "environment_impact": {
+    "energy_kwh": 0.000095,
+    "carbon_g_co2": 0.0068,
+    "water_liters": 0.00038,
+    "renewable_percent": 92,
+    "pue": 1.19,
+    "provider_id": "provider-eu-central",
+    "location": "Frankfurt, DE"
+  },
+  "billing_cost": {
+    "energy": 0.000047,
+    "credits": 0.00076,
+    "paid_with": "credits"
+  }
+}
+```
+
+For `"text"` format, the response body is the plain transcript string. For `"srt"` and `"vtt"`, the body is the subtitle file content.
+
+<ResponseField name="text" type="string">
+  The full transcribed text. Present in `"json"` response format.
+</ResponseField>
+
+<ResponseField name="environment_impact" type="object">
+  Per-request environmental footprint. Fields: `energy_kwh`, `carbon_g_co2`, `water_liters`, `renewable_percent`, `pue`, `provider_id`, `location`. Present in `"json"` format responses.
+</ResponseField>
+
+<ResponseField name="billing_cost" type="object">
+  Itemised cost: `energy` (EUR), `credits` deducted, and `paid_with`. Present in `"json"` format responses.
+</ResponseField>
+
+---
+
+<Tip>
+  Providing the `language` parameter is strongly recommended for production use. Auto-detection adds a small amount of latency and can occasionally misidentify short audio clips.
+</Tip>
+
+<Note>
+  Audio transcription runs on GDPR-compliant European infrastructure. Audio files and transcripts never leave the EU and are never used to train models.
+</Note>

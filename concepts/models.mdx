@@ -1,0 +1,84 @@
+---
+title: "Available Models on Meliai — 60+ Open-Weight Models"
+sidebarTitle: "Models"
+description: "Browse Meliai's catalog of 60+ open-weight models including Llama, Mistral, DeepSeek, Qwen, FLUX, and Whisper, all running on European infrastructure."
+---
+
+Meliai gives you access to more than 60 open-weight models spanning text generation, image synthesis, audio transcription, embeddings, and reranking — all served exclusively from European infrastructure. Because every model in the catalog is open-weight, your requests are never routed to US- or APAC-based proprietary model APIs. The catalog is continuously updated as new model families are released and validated on the platform.
+
+## Model categories
+
+<CardGroup cols={2}>
+  <Card title="Text generation" icon="message">
+    Chat, instruction-following, and reasoning models from **Llama**, **Mistral**, **DeepSeek**, **Qwen**, **GLM**, and **Kimi**. Suitable for chat completions, agentic pipelines, RAG, and code generation.
+  </Card>
+  <Card title="Image generation" icon="image">
+    Diffusion models from the **FLUX** family for text-to-image generation via the `/v1/images/generations` endpoint.
+  </Card>
+  <Card title="Audio / speech" icon="microphone">
+    **Whisper** for automatic speech recognition and **Voxtral** for advanced audio understanding, available via `/v1/audio/transcriptions`.
+  </Card>
+  <Card title="Embeddings" icon="brackets-curly">
+    Dense vector embedding models for semantic search, clustering, and retrieval-augmented generation via `/v1/embeddings`.
+  </Card>
+  <Card title="Reranking" icon="arrow-up-arrow-down">
+    Cross-encoder reranking models that score document–query relevance for improved RAG precision via `/v1/rerank`.
+  </Card>
+</CardGroup>
+
+## Browsing and finding models
+
+### Hub UI
+
+The easiest way to explore the full catalog is the [Meliai Hub](https://meliai.ai/hub). You can filter by category, provider, and routing flavor, and copy model IDs directly into your code.
+
+### List all models via API
+
+Fetch the live catalog programmatically with a `GET /v1/models` request:
+
+```bash curl
+curl https://api.meliai.ai/v1/models \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+The response is an OpenAI-compatible model list object. Each entry includes the model ID, supported endpoints, and metadata about available routing flavors.
+
+### Look up a single model
+
+```bash curl
+curl https://api.meliai.ai/v1/models/qwen/qwen3-235b-a22b \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+## Model IDs
+
+Model IDs follow the format `provider/model-name`, for example:
+
+| Example ID | Family | Category |
+|---|---|---|
+| `qwen/qwen3-235b-a22b` | Qwen | Text generation |
+| `meta-llama/llama-3.3-70b-instruct` | Llama | Text generation |
+| `mistralai/mistral-small-3.2-24b-instruct` | Mistral | Text generation |
+| `deepseek/deepseek-r1` | DeepSeek | Reasoning |
+| `black-forest-labs/flux-1.1-pro` | FLUX | Image generation |
+| `openai/whisper-large-v3` | Whisper | Audio transcription |
+
+Use the exact ID returned by `GET /v1/models` in your request's `model` field.
+
+## Routing suffixes on model IDs
+
+Append a colon-separated flavor suffix to any model ID to control how Meliai selects a provider:
+
+| Suffix | Effect |
+|---|---|
+| *(none)* | Defaults to `balanced` routing |
+| `:speed` | Prioritises lowest latency |
+| `:price` | Prioritises lowest cost |
+| `:eco` | Prioritises greener providers |
+| `:batch` | Optimised for async batch jobs |
+
+For example, `qwen/qwen3-235b-a22b:price` routes to the cheapest available European provider for that model. See [Routing](/concepts/routing) for the full breakdown.
+
+<Note>
+Meliai does not serve proprietary models such as GPT-4o, Claude, or Gemini. For client compatibility, certain well-known OpenAI and Anthropic model name aliases (e.g. `gpt-4o`, `claude-3-5-sonnet`) are mapped to capable open-weight equivalents — your existing client code continues to work while your requests stay on European open-weight infrastructure.
+</Note>

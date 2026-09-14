@@ -1,0 +1,237 @@
+---
+title: "POST /v1/messages — Anthropic-Compatible Chat"
+sidebarTitle: "Messages"
+description: "POST /v1/messages — Anthropic Messages API shape on Meliai. Use the Anthropic SDK or any Anthropic-compatible client with your Meliai API key and base URL."
+---
+
+The `/v1/messages` endpoint mirrors the Anthropic Messages API, letting you use the official `anthropic` Python or TypeScript SDK — or any Anthropic-compatible client — without code changes. Point the client at `https://api.meliai.ai` with your `sk-mel-<KEY>` API key and every request is routed across Meliai's European provider network. Claude model identifiers such as `claude-sonnet-4` are accepted as aliases and mapped to equivalent open-weight models running entirely on EU infrastructure.
+
+<Note>
+  Claude model names (e.g. `claude-sonnet-4`) are logical aliases mapped to capable open-weight equivalents. No Anthropic infrastructure is involved — your data stays within the EU at all times.
+</Note>
+
+## Endpoint
+
+```
+POST https://api.meliai.ai/v1/messages
+```
+
+**Authorization:** `Bearer sk-mel-<KEY>` via `Authorization` header, or `x-api-key: sk-mel-<KEY>`.
+
+---
+
+## Parameters
+
+<ParamField body="model" type="string" required>
+  Model ID to use. You may pass an Anthropic-style alias (e.g. `"claude-sonnet-4"`) or a direct open-weight model ID. Append a [routing flavor suffix](/concepts/routing) such as `:speed` or `:eco` to control provider selection.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  Conversation turns in Anthropic format. Each object requires:
+  - `role` — `"user"` or `"assistant"`
+  - `content` — a string, or an array of content blocks (`text`, `image`, `tool_use`, `tool_result`)
+</ParamField>
+
+<ParamField body="max_tokens" type="integer" required>
+  Maximum number of tokens to generate. Anthropic's API treats this field as required; include it on every request.
+</ParamField>
+
+<ParamField body="system" type="string">
+  System prompt placed before the conversation. Equivalent to a `{"role": "system", ...}` message in the OpenAI format.
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature in `[0, 1]`. Higher values increase output diversity. Defaults to the model's built-in default.
+</ParamField>
+
+<ParamField body="stream" type="boolean">
+  When `true`, the response streams as SSE events using the Anthropic streaming format. Default: `false`.
+</ParamField>
+
+<ParamField body="tools" type="array">
+  Tool definitions following the Anthropic tool-calling schema. Each tool object contains `name`, `description`, and `input_schema` (a JSON Schema object).
+</ParamField>
+
+<ParamField body="tool_choice" type="object">
+  Controls tool invocation. Anthropic-format object with a `type` field: `"auto"`, `"any"`, or `"tool"` (plus `name` when specifying a particular tool).
+</ParamField>
+
+---
+
+## Examples
+
+### Basic chat
+
+<CodeGroup>
+
+```python Python (anthropic SDK)
+import os
+from anthropic import Anthropic
+
+client = Anthropic(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai",
+)
+
+response = client.messages.create(
+    model="claude-sonnet-4",
+    max_tokens=512,
+    system="You are a helpful assistant.",
+    messages=[{"role": "user", "content": "Name three Hanseatic cities."}],
+)
+print(response.content[0].text)
+```
+
+```javascript Node.js (anthropic SDK)
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai",
+});
+
+const response = await client.messages.create({
+  model: "claude-sonnet-4",
+  max_tokens: 512,
+  system: "You are a helpful assistant.",
+  messages: [{ role: "user", content: "Name three Hanseatic cities." }],
+});
+console.log(response.content[0].text);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/messages \
+  -H "x-api-key: $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4",
+    "max_tokens": 512,
+    "system": "You are a helpful assistant.",
+    "messages": [
+      {"role": "user", "content": "Name three Hanseatic cities."}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+### Streaming
+
+<CodeGroup>
+
+```python Python
+with client.messages.stream(
+    model="claude-sonnet-4",
+    max_tokens=512,
+    messages=[{"role": "user", "content": "Explain the EU AI Act briefly."}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+```
+
+```javascript Node.js
+const stream = client.messages.stream({
+  model: "claude-sonnet-4",
+  max_tokens: 512,
+  messages: [{ role: "user", content: "Explain the EU AI Act briefly." }],
+});
+
+for await (const event of stream) {
+  if (
+    event.type === "content_block_delta" &&
+    event.delta.type === "text_delta"
+  ) {
+    process.stdout.write(event.delta.text);
+  }
+}
+```
+
+</CodeGroup>
+
+---
+
+## Token Count Preflight
+
+Use `POST /v1/messages/count_tokens` to estimate the token count for a request before sending it. The endpoint accepts the same body as `/v1/messages` and returns a count without consuming any generation credits.
+
+```
+POST https://api.meliai.ai/v1/messages/count_tokens
+```
+
+<CodeGroup>
+
+```python Python
+token_response = client.messages.count_tokens(
+    model="claude-sonnet-4",
+    system="You are a helpful assistant.",
+    messages=[{"role": "user", "content": "Name three Hanseatic cities."}],
+)
+print(f"Input tokens: {token_response.input_tokens}")
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/messages/count_tokens \
+  -H "x-api-key: $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4",
+    "system": "You are a helpful assistant.",
+    "messages": [
+      {"role": "user", "content": "Name three Hanseatic cities."}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "input_tokens": 28
+}
+```
+
+---
+
+## Response
+
+A successful non-streaming response returns HTTP `200` with the Anthropic Messages response shape, extended with Meliai's `environment_impact` and `billing_cost` fields.
+
+```json
+{
+  "id": "msg_01XyzAbcDef",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Three notable Hanseatic cities are Hamburg, Lübeck, and Bremen."
+    }
+  ],
+  "model": "claude-sonnet-4",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 28,
+    "output_tokens": 18
+  },
+  "environment_impact": {
+    "energy_kwh": 0.000038,
+    "carbon_g_co2": 0.0027,
+    "water_liters": 0.00015,
+    "renewable_percent": 96,
+    "pue": 1.15,
+    "provider_id": "provider-eu-north",
+    "location": "Amsterdam, NL"
+  },
+  "billing_cost": {
+    "energy": 0.000019,
+    "credits": 0.00035,
+    "paid_with": "credits"
+  }
+}
+```
+
+<Note>
+  All inference runs on GDPR-compliant European infrastructure. Your prompts and completions are never used to train any model.
+</Note>

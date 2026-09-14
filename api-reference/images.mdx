@@ -1,0 +1,187 @@
+---
+title: "POST /v1/images/generations — Generate Images from Text"
+sidebarTitle: "Images"
+description: "POST /v1/images/generations — generate images from text prompts using Meliai image generation models like FLUX, running on European infrastructure."
+---
+
+The `/v1/images/generations` endpoint generates images from natural-language prompts using state-of-the-art diffusion models such as FLUX, all served from Meliai's European provider network. The API is OpenAI-compatible, so you can use the official OpenAI SDK's `images.generate` method by pointing it at Meliai's base URL. Generated images are returned as either a URL or base64-encoded data, and every response includes the standard `environment_impact` and `billing_cost` fields.
+
+## Endpoint
+
+```
+POST https://api.meliai.ai/v1/images/generations
+```
+
+**Authorization:** `Bearer sk-mel-<KEY>` via `Authorization` header.
+
+---
+
+## Parameters
+
+<ParamField body="model" type="string" required>
+  The image generation model ID. FLUX-family models and other open-weight image models available on the Meliai network are listed under `GET /v1/models`. Routing flavor suffixes such as `:price` are supported.
+</ParamField>
+
+<ParamField body="prompt" type="string" required>
+  A natural-language description of the image you want to generate. More specific, detailed prompts generally produce higher-quality results.
+</ParamField>
+
+<ParamField body="n" type="integer">
+  Number of images to generate in a single request. Default: `1`. Higher values multiply credit usage proportionally.
+</ParamField>
+
+<ParamField body="size" type="string">
+  Dimensions of the output image in `"WxH"` format, e.g. `"1024x1024"`, `"1280x720"`. Available sizes depend on the model. Defaults to the model's native resolution if omitted.
+</ParamField>
+
+<ParamField body="response_format" type="string">
+  How the generated image is returned:
+  - `"url"` — a temporary URL pointing to the image (default)
+  - `"b64_json"` — the image encoded as a base64 string inside the JSON response
+</ParamField>
+
+---
+
+## Examples
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.images.generate(
+    model="<IMAGE_MODEL_ID>",
+    prompt="A panoramic view of the Rhine valley at sunset",
+    n=1,
+    size="1024x1024",
+)
+print(response.data[0].url)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.images.generate({
+  model: "<IMAGE_MODEL_ID>",
+  prompt: "A panoramic view of the Rhine valley at sunset",
+  n: 1,
+  size: "1024x1024",
+});
+console.log(response.data[0].url);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/images/generations \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "<IMAGE_MODEL_ID>",
+    "prompt": "A panoramic view of the Rhine valley at sunset",
+    "n": 1,
+    "size": "1024x1024"
+  }'
+```
+
+</CodeGroup>
+
+### Retrieve as base64
+
+To embed the image directly in your application without a follow-up HTTP request, set `response_format` to `"b64_json"`:
+
+<CodeGroup>
+
+```python Python
+import base64
+
+response = client.images.generate(
+    model="<IMAGE_MODEL_ID>",
+    prompt="A medieval European castle surrounded by autumn forests",
+    response_format="b64_json",
+)
+
+image_bytes = base64.b64decode(response.data[0].b64_json)
+with open("output.png", "wb") as f:
+    f.write(image_bytes)
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/images/generations \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "<IMAGE_MODEL_ID>",
+    "prompt": "A medieval European castle surrounded by autumn forests",
+    "response_format": "b64_json"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+```json
+{
+  "created": 1720000000,
+  "data": [
+    {
+      "url": "https://cdn.meliai.ai/images/generated/abc123.png",
+      "b64_json": null
+    }
+  ],
+  "environment_impact": {
+    "energy_kwh": 0.00048,
+    "carbon_g_co2": 0.034,
+    "water_liters": 0.0019,
+    "renewable_percent": 89,
+    "pue": 1.22,
+    "provider_id": "provider-eu-south",
+    "location": "Paris, FR"
+  },
+  "billing_cost": {
+    "energy": 0.00024,
+    "credits": 0.0038,
+    "paid_with": "credits"
+  }
+}
+```
+
+<ResponseField name="created" type="integer">
+  Unix timestamp of when the image was generated.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of image objects, one per generated image. Each contains:
+  - `url` — temporary download URL (present when `response_format` is `"url"`)
+  - `b64_json` — base64-encoded image data (present when `response_format` is `"b64_json"`)
+</ResponseField>
+
+<ResponseField name="environment_impact" type="object">
+  Per-request environmental footprint. Fields: `energy_kwh`, `carbon_g_co2`, `water_liters`, `renewable_percent`, `pue`, `provider_id`, `location`.
+</ResponseField>
+
+<ResponseField name="billing_cost" type="object">
+  Itemised cost: `energy` (EUR), `credits` deducted, and `paid_with`.
+</ResponseField>
+
+---
+
+<Warning>
+  Image URLs are temporary and expire after a short period. Download and store any images you intend to keep, or use `response_format: "b64_json"` to receive the image data directly.
+</Warning>
+
+<Note>
+  Image generation runs entirely on European infrastructure. Your prompts and generated images are never used to train models and never leave the EU.
+</Note>

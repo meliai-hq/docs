@@ -1,0 +1,116 @@
+---
+title: "Track the Environmental Impact of Every AI Request"
+sidebarTitle: "Environmental Impact"
+description: "Every Meliai response includes an environment_impact field with carbon grams, energy kWh, water liters, renewable percentage, and the datacenter PUE."
+---
+
+AI inference consumes real energy, and that energy carries a carbon and water cost that varies significantly depending on where and how a model is run. Meliai believes organisations should be able to measure, report, and minimise the environmental footprint of their AI usage — so every API response includes a detailed `environment_impact` block alongside the model output. This data is calculated per request based on the actual provider, datacenter location, and measured Power Usage Effectiveness (PUE), giving you an accurate picture rather than broad estimates. Whether you are building sustainability dashboards, meeting ESG reporting obligations, or simply trying to make greener infrastructure choices, this field gives you the raw data to act on.
+
+## The `environment_impact` Response Field
+
+Every chat completion response, embedding response, and other inference response from Meliai includes an `environment_impact` object at the top level. Here is a representative example:
+
+```json
+{
+  "environment_impact": {
+    "energy_kwh": 0.00015,
+    "carbon_g_co2": 0.06,
+    "water_liters": 0.0002,
+    "renewable_percent": 85,
+    "pue": 1.18,
+    "provider_id": "ovhcloud",
+    "location": "FR"
+  }
+}
+```
+
+<ResponseField name="energy_kwh" type="number">
+  Energy consumed by this request in kilowatt-hours, including overhead scaled by the datacenter PUE.
+</ResponseField>
+
+<ResponseField name="carbon_g_co2" type="number">
+  Carbon dioxide equivalent in grams, calculated from `energy_kwh` and the grid carbon intensity at the datacenter location.
+</ResponseField>
+
+<ResponseField name="water_liters" type="number">
+  Estimated water consumption in liters, derived from the datacenter's Water Usage Effectiveness (WUE) and the energy consumed.
+</ResponseField>
+
+<ResponseField name="renewable_percent" type="integer">
+  Percentage of energy at the serving datacenter sourced from renewable generation, as reported by the provider.
+</ResponseField>
+
+<ResponseField name="pue" type="number">
+  Power Usage Effectiveness of the datacenter — the ratio of total facility energy to IT equipment energy. A PUE of 1.0 would be perfectly efficient; values closer to 1.0 are better.
+</ResponseField>
+
+<ResponseField name="provider_id" type="string">
+  The Meliai provider identifier that served this request, such as `"ovhcloud"`, `"scaleway"`, or `"hetzner"`.
+</ResponseField>
+
+<ResponseField name="location" type="string">
+  ISO 3166-1 alpha-2 country code of the datacenter that processed the request, for example `"FR"`, `"DE"`, or `"FI"`.
+</ResponseField>
+
+## Minimising Environmental Impact
+
+Meliai's `:eco` routing suffix biases the automatic provider selection toward datacenters with higher renewable energy percentages, lower grid carbon intensity, and better PUE scores. Switch to `:eco` by appending the suffix to your model ID — no other changes are required.
+
+```python Python
+response = client.chat.completions.create(
+    model="<MODEL_ID>:eco",           # bias toward greener providers
+    messages=[{"role": "user", "content": "Summarise this document."}],
+)
+
+impact = response.model_extra.get("environment_impact", {})
+print(f"Carbon: {impact.get('carbon_g_co2')} g CO2")
+print(f"Renewable: {impact.get('renewable_percent')}%")
+print(f"Location: {impact.get('location')}")
+```
+
+<Tip>
+  Use `:eco` routing to prefer providers with higher `renewable_percent` and lower `carbon_g_co2`. Combined with locations such as Finland (`FI`) or Norway (`NO`) — where grids run on near-100% renewables — this can reduce per-request carbon by an order of magnitude compared to coal-heavy regions.
+</Tip>
+
+## Logging and Aggregating Carbon Per Request
+
+The example below iterates over a list of prompts, accumulates the carbon cost of each response, and prints a total. Adapt this pattern to write metrics to your observability stack, database, or ESG reporting tool.
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+prompts = [
+    "Summarise the Q3 earnings report.",
+    "Translate this paragraph to German.",
+    "List five marketing taglines for our product.",
+]
+
+total_carbon_g = 0.0
+total_energy_kwh = 0.0
+
+for prompt in prompts:
+    response = client.chat.completions.create(
+        model="<MODEL_ID>:eco",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    impact = response.model_extra.get("environment_impact", {})
+    carbon = impact.get("carbon_g_co2", 0)
+    energy = impact.get("energy_kwh", 0)
+    total_carbon_g += carbon
+    total_energy_kwh += energy
+    print(f"[{impact.get('location', '?')} / {impact.get('provider_id', '?')}] "
+          f"{carbon:.4f} g CO2 — {energy:.6f} kWh")
+
+print(f"\nTotal carbon:  {total_carbon_g:.4f} g CO2")
+print(f"Total energy:  {total_energy_kwh:.6f} kWh")
+```
+
+<Info>
+  `response.model_extra` is the OpenAI Python SDK's way of accessing fields that are not part of the standard OpenAI response schema. If you are using a different HTTP client, `environment_impact` is present at the top level of the JSON response body alongside `id`, `object`, `choices`, and `usage`.
+</Info>

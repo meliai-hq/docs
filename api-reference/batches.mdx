@@ -1,0 +1,222 @@
+---
+title: "Batch API — Async Bulk Inference on Meliai"
+sidebarTitle: "Batches"
+description: "POST /v1/batches creates asynchronous batch inference jobs on Meliai. Upload a JSONL input file, submit the batch, poll status, and download results."
+---
+
+The Batch API lets you submit large collections of inference requests as a single asynchronous job, making it the best choice for workloads like bulk document classification, multilingual translation pipelines, and large-scale data extraction. Instead of sending thousands of individual requests in real time, you upload a JSONL input file, create a batch job, and retrieve the results once processing is complete — all at reduced cost compared to synchronous inference.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/batches | Create a batch |
+| GET | /v1/batches | List batches |
+| GET | /v1/batches/{id} | Retrieve a batch |
+| POST | /v1/batches/{id}/cancel | Cancel a batch |
+
+---
+
+## Create a Batch
+
+Submit a new asynchronous batch job by referencing a previously uploaded input file and specifying which inference endpoint should process each request in that file.
+
+**`POST /v1/batches`**
+
+<ParamField body="input_file_id" type="string" required>
+  The file ID returned by `POST /v1/files` when you uploaded your JSONL request file. Example: `file-abc123`.
+</ParamField>
+
+<ParamField body="endpoint" type="string" required>
+  The inference endpoint to invoke for every request in the batch. Use `"/v1/chat/completions"` for chat models.
+</ParamField>
+
+<ParamField body="completion_window" type="string">
+  The maximum time window Meliai is allowed to take to complete the batch. Accepts durations such as `"24h"`. Defaults to `"24h"` when omitted.
+</ParamField>
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/batches \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_file_id": "file-abc123",
+    "endpoint": "/v1/chat/completions",
+    "completion_window": "24h"
+  }'
+```
+
+```python Python
+import openai
+
+client = openai.OpenAI(
+    api_key="sk-mel-<KEY>",
+    base_url="https://api.meliai.ai/v1",
+)
+
+batch = client.batches.create(
+    input_file_id="file-abc123",
+    endpoint="/v1/chat/completions",
+    completion_window="24h",
+)
+print(batch.id)  # batch-xyz789
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-mel-<KEY>",
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const batch = await client.batches.create({
+  input_file_id: "file-abc123",
+  endpoint: "/v1/chat/completions",
+  completion_window: "24h",
+});
+console.log(batch.id); // batch-xyz789
+```
+
+</CodeGroup>
+
+---
+
+## Batch Status Values
+
+Poll `GET /v1/batches/{id}` to track progress. The `status` field in the response will be one of the following values.
+
+| Status | Description |
+|--------|-------------|
+| `validating` | Input file is being validated before processing begins |
+| `in_progress` | Requests are actively being processed across providers |
+| `completed` | All requests finished; results are ready to download |
+| `failed` | The batch failed to complete; check `errors` in the response |
+| `cancelled` | The batch was cancelled before completion |
+
+---
+
+## Input File Format
+
+Your input file must be a JSONL file (one JSON object per line). Each line represents a single inference request and must include a `custom_id` you define, the HTTP `method`, the target `url`, and a `body` matching the schema of the chosen endpoint.
+
+```jsonl
+{"custom_id": "req-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Summarize GDPR in one sentence."}]}}
+{"custom_id": "req-2", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "What is data sovereignty?"}]}}
+```
+
+The `custom_id` is echoed back in every output line, so you can match results to the original requests after the batch completes.
+
+---
+
+## Retrieve and Download Results
+
+Once you have a batch ID, poll its status and then fetch the output file when processing finishes.
+
+**Check batch status — `GET /v1/batches/{id}`**
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/batches/batch-xyz789 \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+batch = client.batches.retrieve("batch-xyz789")
+print(batch.status)           # "completed"
+print(batch.output_file_id)   # "file-out456"
+```
+
+```javascript Node.js
+const batch = await client.batches.retrieve("batch-xyz789");
+console.log(batch.status);          // "completed"
+console.log(batch.output_file_id);  // "file-out456"
+```
+
+</CodeGroup>
+
+**Download results — `GET /v1/files/{output_file_id}/content`**
+
+Once `status` is `"completed"`, retrieve the output JSONL file using the `output_file_id` from the batch object.
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/files/file-out456/content \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -o results.jsonl
+```
+
+```python Python
+content = client.files.content("file-out456")
+with open("results.jsonl", "wb") as f:
+    f.write(content.read())
+```
+
+```javascript Node.js
+const content = await client.files.content("file-out456");
+const text = await content.text();
+require("fs").writeFileSync("results.jsonl", text);
+```
+
+</CodeGroup>
+
+Each line in the output JSONL includes the original `custom_id`, the HTTP `status_code`, and a `response` body in the same shape as a synchronous inference response.
+
+---
+
+## List Batches
+
+Retrieve all batch jobs associated with your account.
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/batches \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+batches = client.batches.list()
+for b in batches.data:
+    print(b.id, b.status)
+```
+
+```javascript Node.js
+const batches = await client.batches.list();
+for (const b of batches.data) {
+  console.log(b.id, b.status);
+}
+```
+
+</CodeGroup>
+
+---
+
+## Cancel a Batch
+
+Send a cancellation request to stop an in-progress batch. Requests that have already been processed will still appear in the output file.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://api.meliai.ai/v1/batches/batch-xyz789/cancel \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+client.batches.cancel("batch-xyz789")
+```
+
+```javascript Node.js
+await client.batches.cancel("batch-xyz789");
+```
+
+</CodeGroup>
+
+<Tip>
+  Add the `:batch` routing suffix to the model ID in each request body (e.g. `"model": "mistral-7b:batch"`) to unlock maximum cost savings. The `:batch` flavor routes your requests to the lowest-cost available provider for non-latency-sensitive workloads.
+</Tip>

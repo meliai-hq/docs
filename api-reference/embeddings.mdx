@@ -1,0 +1,157 @@
+---
+title: "POST /v1/embeddings — Generate Vector Embeddings"
+sidebarTitle: "Embeddings"
+description: "POST /v1/embeddings — generate vector embeddings from text for semantic search, RAG, and similarity tasks. OpenAI-compatible with European infrastructure."
+---
+
+The `/v1/embeddings` endpoint converts text into dense numerical vectors that capture semantic meaning. Use embeddings to power semantic search, Retrieval-Augmented Generation (RAG) pipelines, document clustering, duplicate detection, and cross-lingual similarity tasks. The endpoint is OpenAI-compatible, so any library or framework that targets the OpenAI embeddings API works out of the box by pointing `base_url` at Meliai. Embedding requests default to the `:price` routing flavor, keeping bulk vectorisation costs low.
+
+## Endpoint
+
+```
+POST https://api.meliai.ai/v1/embeddings
+```
+
+**Authorization:** `Bearer sk-mel-<KEY>` via `Authorization` header.
+
+---
+
+## Parameters
+
+<ParamField body="model" type="string" required>
+  The embedding model ID to use. Check `GET /v1/models` for available embedding models. Routing flavor suffixes (e.g. `:speed`) are supported but `:price` is applied by default for embedding requests.
+</ParamField>
+
+<ParamField body="input" type="string | array" required>
+  The text to embed. Pass a single string or an array of strings to embed multiple texts in one request. Batching multiple inputs in a single call is more efficient than sending them individually.
+</ParamField>
+
+<ParamField body="encoding_format" type="string">
+  Format of the returned vectors:
+  - `"float"` — array of 64-bit floats (default)
+  - `"base64"` — base64-encoded binary representation, useful for reducing response payload size
+</ParamField>
+
+---
+
+## Example
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.embeddings.create(
+    model="<EMBEDDING_MODEL_ID>",
+    input=["European AI infrastructure", "sovereign data residency"],
+)
+
+for item in response.data:
+    print(f"Index {item.index}: vector dim {len(item.embedding)}")
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.embeddings.create({
+  model: "<EMBEDDING_MODEL_ID>",
+  input: ["European AI infrastructure", "sovereign data residency"],
+});
+
+for (const item of response.data) {
+  console.log(`Index ${item.index}: vector dim ${item.embedding.length}`);
+}
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/embeddings \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "<EMBEDDING_MODEL_ID>",
+    "input": ["European AI infrastructure", "sovereign data residency"]
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+```json
+{
+  "object": "list",
+  "model": "<EMBEDDING_MODEL_ID>",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [0.0023, -0.0147, 0.0382, "..."]
+    },
+    {
+      "object": "embedding",
+      "index": 1,
+      "embedding": [0.0051, -0.0093, 0.0271, "..."]
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 8,
+    "total_tokens": 8
+  },
+  "environment_impact": {
+    "energy_kwh": 0.000008,
+    "carbon_g_co2": 0.0006,
+    "water_liters": 0.00003,
+    "renewable_percent": 91,
+    "pue": 1.2,
+    "provider_id": "provider-eu-central",
+    "location": "Munich, DE"
+  },
+  "billing_cost": {
+    "energy": 0.000004,
+    "credits": 0.000062,
+    "paid_with": "credits"
+  }
+}
+```
+
+<ResponseField name="data" type="array">
+  Ordered array of embedding objects, one per input string. Each contains:
+  - `object` — always `"embedding"`
+  - `index` — position of this item in the input array
+  - `embedding` — the vector as an array of floats (or a base64 string if `encoding_format` is `"base64"`)
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token counts for the request: `prompt_tokens` and `total_tokens`.
+</ResponseField>
+
+<ResponseField name="environment_impact" type="object">
+  Per-request environmental footprint. Fields: `energy_kwh`, `carbon_g_co2`, `water_liters`, `renewable_percent`, `pue`, `provider_id`, `location`.
+</ResponseField>
+
+<ResponseField name="billing_cost" type="object">
+  Itemised cost: `energy` (EUR), `credits` deducted, and `paid_with`.
+</ResponseField>
+
+---
+
+<Tip>
+  Embedding requests automatically use the `:price` routing flavor. If you need lower latency for real-time retrieval, append `:speed` to your model ID: `"<EMBEDDING_MODEL_ID>:speed"`.
+</Tip>
+
+<Note>
+  All embedding computation runs on European infrastructure. Input text never leaves the EU and is never used to train models.
+</Note>

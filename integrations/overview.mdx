@@ -1,0 +1,70 @@
+---
+title: "Integrate Meliai with Your Existing AI Stack"
+sidebarTitle: "Overview"
+description: "Meliai works with any tool that speaks OpenAI or Anthropic. Connect LangChain, Vercel AI SDK, n8n, Cursor, Claude Code, and more with a single configuration change."
+---
+
+Meliai is designed for drop-in compatibility — if your tool, framework, or workflow already talks to OpenAI or Anthropic, you can point it at Meliai with a single configuration change. Swap the base URL to `https://api.meliai.ai/v1`, set your `sk-mel-<KEY>` API key, and everything from chains and agents to streaming route handlers keeps working exactly as before, now routed across sovereign European infrastructure.
+
+<CardGroup cols={2}>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Use `ChatOpenAI` with a custom `base_url` to connect LangChain chains, agents, and memory to Meliai.
+  </Card>
+  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/vercel-ai-sdk">
+    Use the `@ai-sdk/openai` provider with a custom `baseURL` in Next.js route handlers and server actions.
+  </Card>
+  <Card title="n8n" icon="workflow" href="/integrations/n8n">
+    Configure the OpenAI Chat Model node in n8n with your Meliai API key and base URL to run AI workflows.
+  </Card>
+  <Card title="OpenAI SDK" icon="code" href="/get-started/from-openai">
+    Already using the OpenAI Python or Node.js SDK? Set `base_url` to Meliai and you're done.
+  </Card>
+  <Card title="Anthropic SDK" icon="robot" href="/get-started/from-anthropic">
+    The Anthropic Python and Node.js SDKs work with Meliai's `/v1/messages` endpoint out of the box.
+  </Card>
+  <Card title="Cursor" icon="mouse-pointer">
+    Set a custom API base in Cursor's model settings to route your AI-assisted coding through Meliai's European infrastructure.
+  </Card>
+</CardGroup>
+
+## Any OpenAI-compatible client
+
+Meliai follows the OpenAI API shape, so any client library, proxy, or tool that lets you configure a base URL will work. The general pattern is:
+
+1. Set the **base URL** to `https://api.meliai.ai/v1`
+2. Set the **API key** to your `sk-mel-<KEY>` value
+
+That's all. Model names, request bodies, streaming, and response formats stay identical to what you already use.
+
+<CodeGroup>
+
+```python Python
+import openai
+
+client = openai.OpenAI(
+    api_key="sk-mel-...",
+    base_url="https://api.meliai.ai/v1",
+)
+```
+
+```typescript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer sk-mel-..." \
+  -H "Content-Type: application/json" \
+  -d '{"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+</CodeGroup>
+
+<Note>
+  Meliai also supports the Anthropic Messages API shape at `/v1/messages`. Point any Anthropic-compatible client at `https://api.meliai.ai` and use your `sk-mel-<KEY>` as the API key.
+</Note>

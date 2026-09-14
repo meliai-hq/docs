@@ -1,0 +1,72 @@
+---
+title: "Meliai Pricing: Energy-Based and Credit-Based Billing"
+sidebarTitle: "Pricing"
+description: "Meliai bills by energy consumption (kWh) or credits depending on the model. Every response includes a billing_cost field showing exactly what was charged."
+---
+
+Meliai takes a transparent, per-request approach to billing: every API response includes a `billing_cost` field that tells you exactly what was charged for that call — no aggregated end-of-month surprises. Pricing is either energy-based (measured in kilowatt-hours) or credit-based depending on the model, and you can always see which mode applied by inspecting the `paid_with` field.
+
+## Billing modes
+
+Meliai supports two billing modes:
+
+<CardGroup cols={2}>
+  <Card title="Energy billing" icon="bolt">
+    Charges are calculated from the actual energy consumed by the inference workload, measured in **kWh**. This maps directly to the `environment_impact.energy_kwh` value in the response and is the default for most text-generation models.
+  </Card>
+  <Card title="Credit billing" icon="coins">
+    Some models are billed in **Meliai credits** — a fixed unit that abstracts over provider-specific pricing. Credits are pre-purchased and drawn down per request.
+  </Card>
+</CardGroup>
+
+Every response body includes a `billing_cost` object so you always know what was charged:
+
+```json
+{
+  "billing_cost": {
+    "energy": "0.0008",
+    "credits": "0.0",
+    "paid_with": "energy"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `energy` | string | kWh consumed by this request (as a decimal string). |
+| `credits` | string | Credits deducted for this request. `"0.0"` when billing mode is `energy`. |
+| `paid_with` | string | Either `"energy"` or `"credits"` — tells you which balance was drawn. |
+
+## Routing and cost
+
+Your choice of routing flavor directly affects how much each request costs:
+
+| Flavor | Cost impact |
+|---|---|
+| `balanced` | Moderate — trades cost against speed and eco impact |
+| `speed` | Higher — fastest providers aren't always the cheapest |
+| `price` | **Lowest real-time cost** — the default for embeddings |
+| `eco` | Moderate — greener providers may not be the cheapest |
+| `batch` | **Deepest discount** — async processing at off-peak rates |
+
+Append the appropriate suffix to your model ID to activate a flavor:
+
+```python
+# Minimise cost for a real-time request
+model = "qwen/qwen3-235b-a22b:price"
+
+# Maximise discount for an offline workload
+model = "qwen/qwen3-235b-a22b:batch"
+```
+
+<Tip>
+Use `:batch` routing with the [Batches API](/api-reference/batches) for high-volume offline workloads such as document processing or dataset annotation. Batch jobs are queued and processed during low-demand windows, giving you the lowest per-token cost available on the platform.
+</Tip>
+
+## Free trial
+
+You can start using Meliai without a credit card. New accounts receive a free usage allocation so you can explore the API and evaluate models before committing to a paid plan.
+
+<Info>
+View current per-model pricing, top up your energy balance or credits, and manage your billing plan at [https://meliai.ai/pricing](https://meliai.ai/pricing).
+</Info>

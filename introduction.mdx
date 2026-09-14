@@ -1,0 +1,76 @@
+---
+title: "Meliai: European Sovereign AI Inference API"
+sidebarTitle: "Introduction"
+description: "Meliai gives you OpenAI- and Anthropic-compatible access to 60+ open-weight models across sovereign European infrastructure, with per-response carbon tracking."
+---
+
+Meliai is a European sovereign AI inference API that routes your requests across 11+ providers in 8 EU countries — giving you a single, drop-in-compatible endpoint for 60+ open-weight models, without your data ever leaving the EU. Whether you're migrating from OpenAI, Anthropic, or building from scratch, Meliai fits into your existing stack with a one-line `base_url` change, and hands you per-response carbon, water, and energy telemetry alongside every completion.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Make your first API call in under five minutes using the OpenAI SDK.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore every endpoint, parameter, and response shape in detail.
+  </Card>
+  <Card title="Routing" icon="shuffle" href="/concepts/routing">
+    Learn how flavors like `:speed`, `:eco`, and `:price` shape model selection.
+  </Card>
+  <Card title="Models" icon="microchip" href="/concepts/models">
+    Browse the full catalog of 60+ open-weight models available on Meliai.
+  </Card>
+</CardGroup>
+
+## What makes Meliai different
+
+Most inference APIs treat sovereignty, sustainability, and compatibility as trade-offs. Meliai treats them as defaults.
+
+<CardGroup cols={1}>
+  <Card title="European-only infrastructure" icon="shield-halved">
+    Every request is routed exclusively to data centres inside the European Union. Meliai is GDPR-compliant by design: your prompts and completions never leave EU jurisdiction, and your data is never used for model training.
+  </Card>
+  <Card title="Per-response environmental impact" icon="leaf">
+    Every API response includes an `environment_impact` block reporting exact energy consumption (kWh), carbon emissions (g CO₂), water usage (litres), renewable energy percentage, and the PUE of the serving facility — so you can track and report your AI footprint at the request level.
+  </Card>
+  <Card title="Drop-in OpenAI and Anthropic compatibility" icon="plug">
+    Meliai speaks OpenAI's `/v1/chat/completions` and `/v1/responses` shapes, as well as Anthropic's `/v1/messages` shape. Swap `base_url` and your API key — the rest of your code stays exactly as it is, including streaming, tool calling, vision, and structured output.
+  </Card>
+</CardGroup>
+
+## Migrate in three lines
+
+If you're already using the OpenAI Python SDK, pointing it at Meliai takes three lines:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-mel-<YOUR_KEY>",        # your Meliai API key
+    base_url="https://api.meliai.ai/v1", # the only change required
+)
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[{"role": "user", "content": "Hello from Meliai!"}],
+)
+print(response.choices[0].message.content)
+```
+
+That's it. Everything else — streaming, function calling, vision, JSON mode — works through the same familiar interface.
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Concepts" icon="book-open" href="/concepts/routing">
+    Understand routing flavors, model selection, and auto-failover.
+  </Card>
+  <Card title="Guides" icon="map" href="/guides/streaming">
+    Step-by-step walkthroughs for streaming, embeddings, batching, and more.
+  </Card>
+  <Card title="Integrations" icon="puzzle-piece" href="/integrations">
+    Connect Meliai to LangChain, LlamaIndex, Codex CLI, and other tools.
+  </Card>
+  <Card title="API Reference" icon="terminal" href="/api-reference/overview">
+    Full reference for every endpoint, request field, and response field.
+  </Card>
+</CardGroup>

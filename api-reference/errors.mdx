@@ -1,0 +1,111 @@
+---
+title: "Meliai API Error Codes and Troubleshooting"
+sidebarTitle: "Errors"
+description: "All Meliai API errors use a consistent JSON shape with a stable error code. Match on code for programmatic handling and use message for human-readable context."
+---
+
+When a request cannot be completed, Meliai returns a JSON error object in the response body alongside an appropriate HTTP status code. The `code` field is a stable, machine-readable identifier you can match against in your application logic. The `message` field is human-readable and intended for logging and debugging — its wording may change between API versions. The optional `details` object provides structured context such as token counts or limit values.
+
+## Error Response Shape
+
+```json
+{
+  "error": {
+    "code": "INFERENCE_3207",
+    "message": "Input exceeds the model's context window",
+    "details": { "context_length": 131072, "input_tokens": 164228 }
+  }
+}
+```
+
+<Note>
+  Always match on `code` for programmatic error handling — it is stable across API versions. Treat `message` as a human-readable hint for logs and dashboards, not as a key to branch on.
+</Note>
+
+## HTTP Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| 200 | Success |
+| 400 | Bad request — invalid parameters |
+| 401 | Unauthorized — missing or invalid API key |
+| 403 | Forbidden — key lacks required scope |
+| 404 | Not found — model or resource does not exist |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
+| 503 | Service unavailable |
+
+## Common Error Codes
+
+<Accordion title="INFERENCE_3103 — All providers failed">
+  **HTTP status:** 503
+
+  All European providers available for this model and routing flavor returned errors or were unavailable at the time of the request. This is a transient condition — Meliai's auto-failover already attempted every eligible provider before surfacing this error.
+
+  **Resolution:** Retry the request using exponential backoff. If the error persists beyond several minutes, check the [Meliai status page](https://status.meliai.ai) for active incidents. Consider using the `:balanced` routing flavor to maximise the pool of eligible providers.
+</Accordion>
+
+<Accordion title="INFERENCE_3207 — Input exceeds context window">
+  **HTTP status:** 400
+
+  The total number of input tokens exceeds the maximum context length supported by the requested model. The `details` object includes `context_length` (the model's limit) and `input_tokens` (the size of your request).
+
+  **Resolution:** Reduce the length of your messages, system prompt, or tool definitions, or switch to a model with a larger context window. You can retrieve the context length for any model via `GET /v1/models/{id}`.
+</Accordion>
+
+<Accordion title="AUTH_1001 — Invalid API key">
+  **HTTP status:** 401
+
+  The API key provided is missing, malformed, or has been revoked. Meliai API keys follow the format `sk-mel-<KEY>`.
+
+  **Resolution:** Verify that:
+  - The `Authorization: Bearer sk-mel-...` or `x-api-key: sk-mel-...` header is present on the request.
+  - The key value is copied in full with no leading or trailing whitespace.
+  - The key has not been revoked in the [Meliai dashboard](https://meliai.ai/account/api/keys).
+</Accordion>
+
+<Accordion title="RATE_2001 — Rate limit exceeded">
+  **HTTP status:** 429
+
+  Your account or API key has exceeded its request-rate or token-rate limit for the current time window. The response may include `Retry-After` and `X-RateLimit-Reset` headers indicating when the limit resets.
+
+  **Resolution:** Back off and retry after the indicated reset time. For sustained high-volume workloads, use the [Batches API](/api-reference/batches) (`POST /v1/batches`) which is not subject to the same synchronous rate limits.
+</Accordion>
+
+## Retry Strategy
+
+Apply exponential backoff when retrying transient errors. The following rules keep your retry logic safe and efficient:
+
+- **Retry** on `429` (rate limit) and `INFERENCE_3103` (all providers failed).
+- **Retry** on `503` after a short delay — the service may be recovering.
+- **Do not retry** other `4xx` errors. They indicate a problem with the request itself (bad parameters, invalid key, missing resource) that will not resolve on its own.
+- **Do not retry** `500` errors automatically in production without a cap — surface them for investigation.
+
+The example below implements capped exponential backoff for rate-limit errors using the `openai` Python SDK:
+
+```python
+import time
+import os
+from openai import OpenAI, RateLimitError
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+def chat_with_retry(messages, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return client.chat.completions.create(
+                model="<MODEL_ID>",
+                messages=messages,
+            )
+        except RateLimitError:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(2 ** attempt)
+```
+
+<Tip>
+  For high-volume or non-latency-sensitive workloads, use the Batches API instead of retrying synchronous requests. Batch jobs are processed asynchronously and are not subject to synchronous rate limits.
+</Tip>

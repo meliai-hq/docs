@@ -1,0 +1,105 @@
+---
+title: "Process Requests in Bulk with the Meliai Batch API"
+sidebarTitle: "Batch Processing"
+description: "Use the Meliai Batch API to run thousands of inference requests asynchronously at reduced cost. Upload a JSONL file, submit the batch, and poll for results."
+---
+
+The Batch API is designed for workloads where you have a large number of requests to process but do not need the results immediately. Common use cases include bulk document classification, dataset annotation, offline evaluation runs, nightly summarisation jobs, and any pipeline where throughput matters more than latency. Because batch requests are processed asynchronously and can be scheduled during off-peak periods, they are significantly cheaper than synchronous calls — especially when combined with the `:batch` routing suffix.
+
+## Overview
+
+Batch processing follows an upload-submit-poll pattern:
+
+1. **Prepare** a JSONL file where each line is a self-contained request object.
+2. **Upload** the file to get a `file_id`.
+3. **Submit** a batch job referencing the `file_id`.
+4. **Poll** the batch status until it reaches a terminal state.
+5. **Download** the output file using the `output_file_id` from the completed batch.
+
+All requests in a batch run against the same endpoint. Results are written to an output JSONL file with each line containing the original `custom_id` alongside the response, making it straightforward to correlate outputs with inputs.
+
+## Step-by-Step Walkthrough
+
+<Steps>
+
+### Prepare your input file
+
+Create a JSONL file with one request object per line. Each object requires a `custom_id` (your identifier, returned with the result), a `method`, a `url`, and a `body` matching the target endpoint's request schema.
+
+```jsonl
+{"custom_id": "req-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Translate to French: Hello"}]}}
+{"custom_id": "req-2", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Translate to French: Goodbye"}]}}
+```
+
+Keep `custom_id` values unique within the file — they are your only way to match outputs back to inputs once the batch completes.
+
+### Upload the file
+
+Upload the JSONL file to the Files API with `purpose=batch`. The response includes a `file_id` you will reference when creating the batch.
+
+```bash curl
+curl https://api.meliai.ai/v1/files \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -F purpose=batch \
+  -F file=@requests.jsonl
+```
+
+The response body contains an `id` field (e.g. `"file-abc123"`) — save this for the next step.
+
+### Create the batch
+
+Submit the batch job by posting the `input_file_id` and the target `endpoint`.
+
+```bash curl
+curl https://api.meliai.ai/v1/batches \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"input_file_id": "file-abc123", "endpoint": "/v1/chat/completions"}'
+```
+
+The response contains a batch `id` (e.g. `"batch_abc123"`) and an initial `status` of `"validating"`.
+
+### Poll for completion
+
+Check the batch status by fetching the batch object. Repeat at a reasonable interval — polling every 30–60 seconds is sufficient for most workloads.
+
+```bash curl
+curl https://api.meliai.ai/v1/batches/batch_abc123 \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+When `status` is `"completed"`, the response includes an `output_file_id` pointing to your results.
+
+### Download the results
+
+Retrieve the output file using the `output_file_id` from the completed batch object. The content is a JSONL file where each line pairs a `custom_id` with the full API response for that request.
+
+```bash curl
+curl https://api.meliai.ai/v1/files/file-output123/content \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -o results.jsonl
+```
+
+</Steps>
+
+## Batch Status Values
+
+After creation, a batch moves through the following states:
+
+| Status | Description |
+|---|---|
+| `validating` | The input file is being parsed and validated |
+| `in_progress` | Requests are actively being processed |
+| `completed` | All requests finished; `output_file_id` is available |
+| `failed` | The batch could not be processed; check `errors` for details |
+| `cancelled` | The batch was cancelled via `POST /v1/batches/{id}/cancel` |
+
+A batch in `in_progress` state can be cancelled at any time. Results for requests completed before cancellation are still available in the output file.
+
+<Warning>
+  Failed individual requests within an otherwise successful batch do not change the batch `status` to `"failed"`. Check each line of the output JSONL for per-request `error` fields alongside the overall batch status.
+</Warning>
+
+<Tip>
+  Include `:batch` in your model ID inside the request bodies — for example `"model": "mistral-small:batch"` — to route requests through providers that offer the deepest discounts for asynchronous workloads and achieve maximum cost savings.
+</Tip>

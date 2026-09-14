@@ -1,0 +1,104 @@
+---
+title: "Switch from OpenAI to Meliai in One Line"
+sidebarTitle: "From OpenAI"
+description: "Migrate from OpenAI to Meliai by changing base_url and your API key. All existing OpenAI SDK code continues to work without further changes."
+---
+
+Meliai implements the OpenAI API shape exactly — the same request fields, the same response structure, the same streaming format, and the same SDK interfaces. Migrating means changing two values: your API key and the `base_url`. Every other line of your existing code stays untouched.
+
+<Steps>
+  <Step title="Get a Meliai API key">
+    Create a key at [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys). It will be formatted as `sk-mel-<KEY>`.
+
+    Store it in your environment alongside (or instead of) your existing OpenAI key:
+
+    ```bash
+    export MELIAI_API_KEY="sk-mel-<YOUR_KEY>"
+    ```
+
+    <Tip>
+      If some services in your stack still need the OpenAI key, keep both environment variables. You can reference `OPENAI_API_KEY` for those services and `MELIAI_API_KEY` for Meliai-routed calls.
+    </Tip>
+  </Step>
+
+  <Step title="Update base_url and api_key">
+    Open the file where you initialise your OpenAI client and make the following two-line change:
+
+    ```python
+    import os
+    from openai import OpenAI
+
+    client = OpenAI(
+        api_key="sk-openai-...",              # [!code --]
+        api_key=os.environ["MELIAI_API_KEY"], # [!code ++]
+        base_url="https://api.meliai.ai/v1", # [!code ++]
+    )
+    ```
+
+    For Node.js projects the change is identical in shape:
+
+    ```javascript
+    import OpenAI from "openai";
+
+    const client = new OpenAI({
+      apiKey: "sk-openai-...",                    // [!code --]
+      apiKey: process.env.MELIAI_API_KEY,         // [!code ++]
+      baseURL: "https://api.meliai.ai/v1",        // [!code ++]
+    });
+    ```
+
+    That is the complete migration for SDK-based code. No other changes are required.
+  </Step>
+
+  <Step title="Pick a model">
+    OpenAI model names (e.g. `gpt-4o`, `gpt-3.5-turbo`) don't map 1:1 to Meliai model IDs, because Meliai routes exclusively to open-weight models. Browse equivalent models by capability at [meliai.ai/hub](https://meliai.ai/hub), or list them programmatically:
+
+    ```bash
+    curl https://api.meliai.ai/v1/models \
+      -H "Authorization: Bearer $MELIAI_API_KEY"
+    ```
+
+    Substitute the model ID you choose into your `model` field:
+
+    ```python
+    response = client.chat.completions.create(
+        model="<MODEL_ID>",
+        messages=[{"role": "user", "content": "Hello!"}],
+    )
+    ```
+  </Step>
+
+  <Step title="Optionally add a routing suffix">
+    Meliai lets you influence how your request is routed across EU providers by appending a suffix to the model ID. No code changes beyond the suffix are needed.
+
+    | Suffix | Behaviour |
+    |--------|-----------|
+    | `:balanced` | Default. Balances latency, cost, and availability. |
+    | `:speed` | Routes to the fastest available provider. |
+    | `:price` | Routes to the lowest-cost provider. |
+    | `:eco` | Routes to the highest renewable-energy provider. |
+    | `:batch` | Queues the request for asynchronous batch processing. |
+
+    ```python
+    response = client.chat.completions.create(
+        model="<MODEL_ID>:eco",  # prefer renewable-energy providers
+        messages=[{"role": "user", "content": "Summarise this document."}],
+    )
+    ```
+
+    See the [Routing](/concepts/routing) page for the full details.
+  </Step>
+</Steps>
+
+<Note>
+  All OpenAI SDK features work identically through Meliai: streaming (`stream=True`), tool calling, vision (image inputs), structured output (`response_format`), and logprobs. You do not need to change any feature-specific code.
+</Note>
+
+## What you gain after migrating
+
+Switching to Meliai gives you everything your existing OpenAI code already produces, plus:
+
+- **EU data residency** — requests are routed only to providers inside the European Union.
+- **GDPR compliance** — your data is never used for model training.
+- **Environmental telemetry** — every response carries an `environment_impact` block with energy, carbon, water, and renewable-percentage figures for that specific call.
+- **Auto-failover** — if one EU provider is unavailable, Meliai automatically retries on another, with no change to your code.

@@ -1,0 +1,72 @@
+---
+title: "Use Meliai with LangChain for AI Applications"
+sidebarTitle: "LangChain"
+description: "Connect LangChain to Meliai using the ChatOpenAI class with a custom base_url. All LangChain chains, agents, and memory features work without modification."
+---
+
+LangChain's `ChatOpenAI` class accepts a custom `base_url`, making Meliai a drop-in provider for any LangChain application. You keep every chain, agent, tool, and memory component exactly as-is — only the endpoint and API key change. Your data stays within the EU on every call.
+
+<Steps>
+  <Step title="Install LangChain">
+    Install the `langchain-openai` package, which provides the `ChatOpenAI` and `OpenAIEmbeddings` classes used throughout this guide.
+
+    ```bash
+    pip install langchain-openai
+    ```
+  </Step>
+
+  <Step title="Configure ChatOpenAI with Meliai">
+    Pass your Meliai API key and base URL when instantiating `ChatOpenAI`. Everything else — temperature, streaming, callbacks — works the same way.
+
+    ```python
+    import os
+    from langchain_openai import ChatOpenAI
+
+    llm = ChatOpenAI(
+        model="<MODEL_ID>",
+        api_key=os.environ["MELIAI_API_KEY"],
+        base_url="https://api.meliai.ai/v1",
+    )
+
+    result = llm.invoke("What are the benefits of European data sovereignty?")
+    print(result.content)
+    ```
+  </Step>
+
+  <Step title="Use in a chain">
+    Compose your `ChatOpenAI` instance with prompts and other runnables using LangChain Expression Language (LCEL). No changes are needed compared to a standard OpenAI setup.
+
+    ```python
+    from langchain_core.prompts import ChatPromptTemplate
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful assistant."),
+        ("user", "{input}"),
+    ])
+
+    chain = prompt | llm
+    result = chain.invoke({"input": "Name three open-weight LLMs."})
+    print(result.content)
+    ```
+  </Step>
+
+  <Step title="Use embeddings">
+    `OpenAIEmbeddings` accepts the same `base_url` parameter, giving you Meliai-hosted embedding models for vector search, RAG pipelines, and semantic similarity tasks.
+
+    ```python
+    from langchain_openai import OpenAIEmbeddings
+
+    embeddings = OpenAIEmbeddings(
+        model="<EMBEDDING_MODEL_ID>",
+        api_key=os.environ["MELIAI_API_KEY"],
+        base_url="https://api.meliai.ai/v1",
+    )
+
+    vector = embeddings.embed_query("European AI infrastructure")
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Append a routing suffix to any model ID to control how Meliai selects a provider. For example, use `<MODEL_ID>:eco` to prefer the lowest-carbon data center, or `<MODEL_ID>:speed` to prioritise the fastest available provider.
+</Tip>

@@ -1,0 +1,162 @@
+---
+title: "Analyze Images with Meliai Vision Models"
+sidebarTitle: "Vision"
+description: "Send images alongside text prompts to Meliai vision-capable models using the image_url content part format, compatible with the OpenAI multimodal API."
+---
+
+Vision-capable models can interpret images as part of their input, allowing you to build applications that describe photos, extract text from screenshots, audit diagrams, compare product images, and much more — all within a single API call alongside a text prompt. Meliai routes vision requests to European providers that support multimodal inference, keeping your image data within the EU throughout the entire request lifecycle. The interface follows the OpenAI multimodal message format, so any existing vision code works by changing only the `base_url` and API key.
+
+## Checking Vision Support
+
+Before sending image content to a model, confirm it supports vision by fetching its metadata and inspecting the `capabilities` object.
+
+```bash curl
+curl "https://api.meliai.ai/v1/models/<MODEL_ID>?include_meta=true" \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+Look for `_meta.capabilities.vision: true` in the response. Models that do not have this capability will reject requests containing `image_url` content parts.
+
+## Sending an Image
+
+Replace the `content` string in a user message with an array of content parts. Include a `text` part for your prompt and an `image_url` part for each image you want the model to analyse.
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What is shown in this image?"},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": "https://example.com/image.jpg"},
+                },
+            ],
+        }
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "<MODEL_ID>",
+  messages: [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "What is shown in this image?" },
+        {
+          type: "image_url",
+          image_url: { url: "https://example.com/image.jpg" },
+        },
+      ],
+    },
+  ],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "<MODEL_ID>",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "What is shown in this image?"},
+          {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
+        ]
+      }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+You can include multiple `image_url` parts in a single message to compare or jointly analyse several images.
+
+## Image Formats
+
+Meliai accepts images in two forms:
+
+<Tabs>
+  <Tab title="Public URL">
+    Pass any publicly accessible HTTPS URL in the `url` field.
+
+    ```json
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/image.jpg"
+      }
+    }
+    ```
+
+    <Note>
+      Image URLs are fetched and re-encoded server-side by Meliai before the request is forwarded to the inference provider. The downstream provider never receives or stores your original URL, which preserves referrer privacy and ensures the image is processed within the EU.
+    </Note>
+  </Tab>
+  <Tab title="Base64 Data URI">
+    Encode the image as a base64 data URI and pass it directly in the `url` field.
+
+    ```json
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "data:image/jpeg;base64,/9j/4AAQSkZJRgAB..."
+      }
+    }
+    ```
+
+    Supported MIME types include `image/jpeg`, `image/png`, `image/gif`, and `image/webp`.
+
+    <Note>
+      Use base64 data URIs for private or internal images that should not be served from a public URL. The image bytes travel directly in your API request payload and are never stored by Meliai after the request completes.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Multi-Turn Vision Conversations
+
+You can reference images in earlier turns of a multi-turn conversation. Include the original image content part in the conversation history when sending follow-up messages — the model uses the image from the previous turn to answer questions about it in subsequent ones.
+
+```python Python
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Describe the chart in detail."},
+            {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}},
+        ],
+    },
+    {"role": "assistant", "content": "The chart shows quarterly revenue growth across..."},
+    {"role": "user", "content": "Which quarter had the highest growth?"},
+]
+
+response = client.chat.completions.create(model="<MODEL_ID>", messages=messages)
+```

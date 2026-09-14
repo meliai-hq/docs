@@ -1,0 +1,126 @@
+---
+title: "Meliai API Reference — Endpoints and Schemas"
+sidebarTitle: "Overview"
+description: "Complete reference for the Meliai API. Two compatible shapes — OpenAI and Anthropic — one base URL, one API key, and Meliai-specific routing and impact fields."
+---
+
+The Meliai API exposes two compatible shapes — OpenAI and Anthropic — through a single base URL, so you can migrate existing clients with a one-line change. Every request authenticates with a single `sk-mel-<KEY>` API key, and every inference response carries Meliai-specific fields for routing metadata, environmental impact, and billing cost alongside the standard response body.
+
+## Base URL
+
+```
+https://api.meliai.ai
+```
+
+All paths below are relative to this base URL. There is no versioning in the base URL itself — the version prefix (`/v1`) is part of each path.
+
+## API Shapes
+
+### OpenAI-Compatible Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/chat/completions | Chat with tools, vision, structured output, streaming |
+| POST | /v1/responses | Responses API — for Codex CLI and Responses API clients |
+| POST | /v1/embeddings | Vector embeddings from text |
+| POST | /v1/rerank | Reorder documents by relevance |
+| POST | /v1/images/generations | Generate images from text |
+| POST | /v1/audio/transcriptions | Speech to text |
+| GET | /v1/models | List available models |
+| GET | /v1/models/{id} | Retrieve one model |
+
+### Anthropic-Compatible Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/messages | Chat in the Messages API shape |
+| POST | /v1/messages/count_tokens | Preflight token count |
+
+### Batch & Files Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/batches | Create async batch job |
+| GET | /v1/batches | List batches |
+| GET | /v1/batches/{id} | Get batch status |
+| POST | /v1/batches/{id}/cancel | Cancel a batch |
+| POST | /v1/files | Upload file |
+| GET | /v1/files | List files |
+| GET | /v1/files/{id} | Get file metadata |
+| GET | /v1/files/{id}/content | Download file content |
+| DELETE | /v1/files/{id} | Delete file |
+
+## Universal Response Fields
+
+Every inference response — regardless of API shape — includes two Meliai-specific top-level objects alongside the standard payload. Use `environment_impact` to track the carbon and energy footprint of each call, and `billing_cost` to reconcile usage against your account balance.
+
+```json
+{
+  "environment_impact": {
+    "energy_kwh": 0.000312,
+    "carbon_g_co2": 0.089,
+    "water_liters": 0.00041,
+    "renewable_percent": 94.0,
+    "pue": 1.15,
+    "provider_id": "prov_eu_de_01",
+    "location": "Frankfurt, DE"
+  },
+  "billing_cost": {
+    "energy": 0.000021,
+    "credits": 0.0018,
+    "paid_with": "credits"
+  }
+}
+```
+
+<ResponseField name="environment_impact" type="object">
+  Environmental footprint of the inference request.
+
+  <Expandable title="environment_impact fields">
+    <ResponseField name="energy_kwh" type="number">
+      Energy consumed by this request, in kilowatt-hours.
+    </ResponseField>
+    <ResponseField name="carbon_g_co2" type="number">
+      Carbon emissions attributed to this request, in grams of CO₂ equivalent.
+    </ResponseField>
+    <ResponseField name="water_liters" type="number">
+      Estimated water usage for cooling, in liters.
+    </ResponseField>
+    <ResponseField name="renewable_percent" type="number">
+      Percentage of energy sourced from renewables at the serving provider.
+    </ResponseField>
+    <ResponseField name="pue" type="number">
+      Power Usage Effectiveness ratio of the data center handling this request.
+    </ResponseField>
+    <ResponseField name="provider_id" type="string">
+      Internal identifier of the European provider that served the request.
+    </ResponseField>
+    <ResponseField name="location" type="string">
+      Human-readable city and country of the serving data center.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="billing_cost" type="object">
+  Cost breakdown for this request.
+
+  <Expandable title="billing_cost fields">
+    <ResponseField name="energy" type="number">
+      Energy surcharge in EUR, if applicable.
+    </ResponseField>
+    <ResponseField name="credits" type="number">
+      Credits deducted from your account balance for this request.
+    </ResponseField>
+    <ResponseField name="paid_with" type="string">
+      Payment method used — `"credits"` or `"subscription"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Authentication
+
+All requests require an `Authorization: Bearer sk-mel-<KEY>` or `x-api-key: sk-mel-<KEY>` header. See the [Authentication](/api-reference/authentication) page for setup instructions, SDK examples, and key management.
+
+## Errors
+
+All error responses share a consistent JSON shape keyed on a stable `code` field. See the [Errors](/api-reference/errors) page for the full list of HTTP status codes, named error codes, and a recommended retry strategy.

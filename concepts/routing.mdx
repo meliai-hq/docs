@@ -1,0 +1,118 @@
+---
+title: "How Meliai Routes Requests Across Providers"
+sidebarTitle: "Routing"
+description: "Meliai picks the best European provider for each request using configurable routing flavors: balanced, speed, price, eco, and batch."
+---
+
+Every time you send a request to Meliai, the platform evaluates all available European providers in real time and selects the one that best fits your priorities — balancing cost, latency, and environmental impact. Routing is fully automatic, so your code doesn't need to change as providers are added or removed. You control the tradeoff by choosing a **routing flavor**, either by appending a suffix to your model ID or by setting a `preset` field in your request body.
+
+## The five routing flavors
+
+Each flavor applies a different weighting across three dimensions: price, speed, and environmental impact. Meliai scores every candidate provider against these weights and routes to the winner.
+
+| Flavor | Price weight | Speed weight | Environment weight | Best for |
+|---|---|---|---|---|
+| `balanced` | 40% | 40% | 20% | Default for chat; reasonable across all three dimensions |
+| `speed` | 20% | 70% | 10% | Latency-sensitive apps, chat UIs, and agentic loops |
+| `price` | 70% | 20% | 10% | Bulk workloads; default flavor for embeddings |
+| `eco` | 20% | 20% | 60% | Minimizing carbon footprint and water usage |
+| `batch` | 80% | 5% | 15% | Async discounted work via the Batches API |
+
+## How to choose a flavor
+
+### Method 1: Suffix the model ID
+
+Append `:flavor` directly to the model ID in your request. This is the simplest and most portable approach — it works with any OpenAI- or Anthropic-compatible client without any custom parameters.
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="qwen/qwen3-235b-a22b:eco",   # :eco suffix selects the eco flavor
+    messages=[{"role": "user", "content": "Summarise the water cycle in two sentences."}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "qwen/qwen3-235b-a22b:eco",   // :eco suffix selects the eco flavor
+  messages: [{ role: "user", content: "Summarise the water cycle in two sentences." }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen/qwen3-235b-a22b:eco",
+    "messages": [
+      { "role": "user", "content": "Summarise the water cycle in two sentences." }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+### Method 2: Use the `preset` field
+
+Pass a `preset` value in the request body to hint at the type of workload. Accepted values are `"reasoning"` and `"non_reasoning"`. Meliai uses this to further refine provider selection within the active flavor.
+
+```json
+{
+  "model": "qwen/qwen3-235b-a22b:speed",
+  "preset": "reasoning",
+  "messages": [
+    { "role": "user", "content": "Prove that the square root of 2 is irrational." }
+  ]
+}
+```
+
+<Note>
+If you specify both a model-ID suffix **and** a `preset` field, the suffix takes precedence. For example, `model: "qwen/qwen3-235b-a22b:price"` with `preset: "reasoning"` routes using the `price` flavor.
+</Note>
+
+## Automatic failover
+
+If a provider returns an error or exceeds its response-time threshold, Meliai automatically retries with the next-best provider according to the active flavor's scoring. This happens transparently — your client receives a single response with no visible retry logic.
+
+To see which provider ultimately served your request, inspect the `environment_impact.provider_id` and `environment_impact.location` fields in the response:
+
+```json
+{
+  "environment_impact": {
+    "provider_id": "hetzner-fsn1",
+    "location": "DE",
+    "energy_kwh": 0.00041,
+    "carbon_g_co2": 0.082,
+    "water_liters": 0.0003,
+    "renewable_percent": 78,
+    "pue": 1.2
+  }
+}
+```
+
+If every provider in the pool fails, the API returns error code `INFERENCE_3103`. This is rare; check the [status page](https://status.meliai.ai) if you encounter it repeatedly.
+
+<Tip>
+Use the `:eco` flavor to bias routing toward providers powered by higher proportions of renewable energy. Combined with the `environment_impact` response block, this gives you an auditable record of the carbon footprint of every inference call.
+</Tip>

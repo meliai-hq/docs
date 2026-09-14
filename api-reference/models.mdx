@@ -1,0 +1,182 @@
+---
+title: "GET /v1/models — List and Retrieve Meliai Models"
+sidebarTitle: "Models"
+description: "GET /v1/models returns the full catalog of models available on Meliai. Use query parameters to filter by capability and sort by price, speed, or recency."
+---
+
+The Models API gives you programmatic access to the full Meliai model catalog — more than 60 open-weight models routed across European providers. You can list the entire catalog, narrow it down by output modality or supported parameters, sort results by cost or performance characteristics, and retrieve detailed metadata for any individual model. Use this endpoint to build dynamic model pickers, automate cost-optimized routing decisions, or simply discover what is available before you start building.
+
+## List Models
+
+Fetch all models your API key has access to. Apply query parameters to filter and sort the results.
+
+**`GET /v1/models`**
+
+<ParamField query="output_modalities" type="string">
+  Comma-separated list of modalities to filter by. Accepted values: `text`, `image`, `audio`, `embeddings`, `all`. Example: `output_modalities=image` returns only image-generation models.
+</ParamField>
+
+<ParamField query="supported_parameters" type="string">
+  Filter to models that support a specific API parameter. For example, pass `tools` to return only tool-calling capable models.
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort order for the returned list. Accepted values:
+  - `pricing-low-to-high` — cheapest models first
+  - `pricing-high-to-low` — most expensive models first
+  - `context-high-to-low` — largest context window first
+  - `throughput-high-to-low` — highest throughput first
+  - `latency-low-to-high` — lowest latency first
+  - `newest` — most recently added first
+  - `most-popular` — most used models first
+</ParamField>
+
+<ParamField query="offset" type="integer">
+  Number of results to skip for pagination. Defaults to `0`.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of results to return. Defaults to `100`, maximum `1000`.
+</ParamField>
+
+<CodeGroup>
+
+```bash curl
+# List all available models
+curl https://api.meliai.ai/v1/models \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+
+# Image generation models only
+curl "https://api.meliai.ai/v1/models?output_modalities=image" \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+
+# Cheapest models first
+curl "https://api.meliai.ai/v1/models?sort=pricing-low-to-high" \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+
+# Models supporting tool calling
+curl "https://api.meliai.ai/v1/models?supported_parameters=tools" \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+import openai
+
+client = openai.OpenAI(
+    api_key="sk-mel-<KEY>",
+    base_url="https://api.meliai.ai/v1",
+)
+
+# List all models
+models = client.models.list()
+for m in models.data:
+    print(m.id)
+
+# Filter via raw HTTP for unsupported query params
+import httpx
+
+resp = httpx.get(
+    "https://api.meliai.ai/v1/models",
+    params={"sort": "pricing-low-to-high", "supported_parameters": "tools"},
+    headers={"Authorization": "Bearer sk-mel-<KEY>"},
+)
+print(resp.json())
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-mel-<KEY>",
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+// List all models
+const models = await client.models.list();
+for (const m of models.data) {
+  console.log(m.id);
+}
+
+// Filter via fetch for unsupported query params
+const resp = await fetch(
+  "https://api.meliai.ai/v1/models?sort=pricing-low-to-high&supported_parameters=tools",
+  { headers: { Authorization: "Bearer sk-mel-<KEY>" } }
+);
+const data = await resp.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+---
+
+## Retrieve a Single Model
+
+Fetch the full metadata object for one specific model by its ID.
+
+**`GET /v1/models/{id}`**
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/models/<MODEL_ID> \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+model = client.models.retrieve("<MODEL_ID>")
+print(model.id, model.context_length)
+```
+
+```javascript Node.js
+const model = await client.models.retrieve("<MODEL_ID>");
+console.log(model.id, model.context_length);
+```
+
+</CodeGroup>
+
+---
+
+## Model Object Schema
+
+Every model object returned by the API contains the following fields.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique model identifier used in API requests (e.g. `"mistral-7b-instruct"`) |
+| `name` | string | Human-readable display name shown in the Meliai Hub |
+| `description` | string | Summary of the model's capabilities and characteristics |
+| `context_length` | integer | Maximum context window size in tokens |
+| `pricing` | object | Per-token pricing broken down by input and output tokens |
+| `supported_parameters` | string[] | List of API parameters the model accepts (e.g. `["tools", "response_format"]`) |
+| `created` | integer | Unix timestamp recording when the model was added to the Meliai catalog |
+
+<Accordion title="Example model object">
+
+```json
+{
+  "id": "mistral-7b-instruct",
+  "object": "model",
+  "name": "Mistral 7B Instruct",
+  "description": "A fast, compact instruction-tuned model well-suited for summarisation, classification, and Q&A tasks.",
+  "context_length": 32768,
+  "pricing": {
+    "input": 0.000000060,
+    "output": 0.000000060
+  },
+  "supported_parameters": ["tools", "response_format", "temperature", "stream"],
+  "created": 1710000000
+}
+```
+
+</Accordion>
+
+---
+
+<Note>
+  Browse the full model catalog visually, compare specs side-by-side, and filter by category at **[meliai.ai/hub](https://meliai.ai/hub)** — no API key required.
+</Note>
+
+<Tip>
+  Use `?supported_parameters=tools` to find every model that supports tool calling. Combine it with `&sort=pricing-low-to-high` to pick the most cost-effective tool-calling model for your use case.
+</Tip>

@@ -1,0 +1,88 @@
+---
+title: "Switch from Anthropic Claude to Meliai"
+sidebarTitle: "From Anthropic"
+description: "Point the Anthropic SDK at Meliai by setting ANTHROPIC_BASE_URL and your API key. Claude model names are mapped to open-weight equivalents automatically."
+---
+
+Meliai exposes a fully Anthropic-compatible endpoint at `/v1/messages`, accepting the exact request shape and returning the exact response shape that the Anthropic SDK expects. You migrate by setting two environment variables — `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL` — and your existing code continues to run without modification. Claude model names such as `claude-sonnet-4` are mapped automatically to open-weight equivalents served from EU infrastructure.
+
+<Steps>
+  <Step title="Get a Meliai API key">
+    Create a key at [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys). Your key will have the format `sk-mel-<KEY>`.
+
+    <Tip>
+      Keep your existing `ANTHROPIC_API_KEY` value if any other services in your stack still call Anthropic directly. You can hold both variables in your environment simultaneously.
+    </Tip>
+  </Step>
+
+  <Step title="Set your environment variables">
+    Override the two values the Anthropic SDK reads to locate the API:
+
+    ```bash
+    export ANTHROPIC_API_KEY="sk-mel-<YOUR_KEY>"
+    export ANTHROPIC_BASE_URL="https://api.meliai.ai"
+    ```
+
+    The SDK picks these up automatically — no code changes needed at this stage. `ANTHROPIC_BASE_URL` must point to the root URL (without a `/v1` suffix); the SDK appends the path itself.
+  </Step>
+
+  <Step title="Run your existing code">
+    Your Anthropic SDK calls work unchanged. Here's a minimal example to confirm the connection:
+
+    ```python
+    import os
+    from anthropic import Anthropic
+
+    client = Anthropic(
+        api_key=os.environ["MELIAI_API_KEY"],
+        base_url="https://api.meliai.ai",
+    )
+
+    response = client.messages.create(
+        model="claude-sonnet-4",
+        max_tokens=256,
+        messages=[{"role": "user", "content": "Name three Hanseatic cities."}],
+    )
+    print(response.content[0].text)
+    ```
+
+    Streaming, tool use, vision inputs, and system prompts all work through the same `/v1/messages` endpoint with no modifications to your feature-specific code.
+  </Step>
+
+  <Step title="Understand model name mapping">
+    Meliai does not serve Anthropic's proprietary Claude weights. Instead, when you pass a Claude model name, Meliai maps it to the closest open-weight equivalent available on EU infrastructure. For example:
+
+    | Anthropic model name | Meliai equivalent |
+    |----------------------|-------------------|
+    | `claude-sonnet-4` | Open-weight model of comparable capability |
+    | `claude-haiku-3-5` | Fast, lightweight open-weight model |
+    | `claude-opus-4` | High-capability open-weight model |
+
+    You can also supply a Meliai-native model ID directly — browse the full mapping at [meliai.ai/hub](https://meliai.ai/hub) or retrieve it programmatically:
+
+    ```bash
+    curl https://api.meliai.ai/v1/models \
+      -H "Authorization: Bearer $MELIAI_API_KEY"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The Anthropic SDK's `beta.messages.create` interface (used for extended thinking, prompt caching, and other beta features) targets the same `/v1/messages` endpoint on Meliai. Pass the corresponding `betas` header values as you normally would; Meliai forwards them to the underlying model where supported.
+</Note>
+
+<Info>
+  Meliai also exposes `POST /v1/messages/count_tokens`, the Anthropic-compatible token-count preflight endpoint. Call it before a full completion to estimate token usage and cost without incurring inference charges.
+</Info>
+
+## What changes and what stays the same
+
+| Aspect | Before (Anthropic) | After (Meliai) |
+|--------|--------------------|----------------|
+| SDK | `anthropic` Python / JS | Same SDK, unchanged |
+| Endpoint | `api.anthropic.com` | `api.meliai.ai` |
+| API key format | `sk-ant-...` | `sk-mel-...` |
+| Model weights | Proprietary Claude | Open-weight equivalents |
+| Data residency | Anthropic (US) | EU-only, GDPR-compliant |
+| Environmental telemetry | Not available | Per-response `environment_impact` |
+| Response shape | Anthropic Messages | Identical Anthropic Messages shape |

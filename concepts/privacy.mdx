@@ -1,0 +1,73 @@
+---
+title: "Data Residency and Privacy on Meliai"
+sidebarTitle: "Privacy"
+description: "Meliai routes requests exclusively through EU-based providers. Your data stays under European jurisdiction, is end-to-end encrypted, and is never used for training."
+---
+
+Data sovereignty is a first-class design principle at Meliai, not an afterthought. Every inference request is routed exclusively to providers operating within the European Union or European Economic Area, keeping your data under European jurisdiction at all times. Meliai is GDPR-compliant by architecture: there are no US or APAC fallbacks, no cross-border data transfers, and no use of your data to train or fine-tune any model.
+
+## Data stays in Europe
+
+Meliai maintains a network of 11+ vetted providers distributed across 8 EU/EEA countries. When you send a request, the routing layer selects from this pool only — there is no fallback path to infrastructure outside Europe, regardless of provider availability or load.
+
+<CardGroup cols={2}>
+  <Card title="11+ European providers" icon="server">
+    Providers span data centres in countries including Germany, France, the Netherlands, Finland, and more — all within EU/EEA jurisdiction.
+  </Card>
+  <Card title="No US or APAC routing" icon="shield-check">
+    Meliai's routing table contains only European endpoints. Your traffic cannot be redirected outside the EU, even during failover.
+  </Card>
+</CardGroup>
+
+European data residency for every Meliai request is independently verified by [staysin.eu](https://staysin.eu), a third-party audit service for EU AI infrastructure.
+
+## No training on your data
+
+Meliai is an inference platform. Your prompts, completions, images, and audio are processed to return a response and are never stored, logged for training purposes, or shared with model providers for fine-tuning. This applies to all models in the catalog and all API endpoints.
+
+<Note>
+This commitment covers all request data: message contents, file uploads, image URLs, and audio files submitted to any Meliai endpoint.
+</Note>
+
+## Encryption
+
+All data in transit between your application and Meliai's API gateway is encrypted with TLS 1.2 or higher. Within the platform, requests are forwarded to providers over encrypted channels.
+
+For vision and multimodal requests that include image URLs, Meliai fetches the image server-side and re-encodes it before forwarding to the inference provider. This means the provider never sees your original image URL — only the image content itself.
+
+## GDPR compliance
+
+Because all infrastructure is located within the EU/EEA, every request falls under the jurisdiction of the General Data Protection Regulation. Key implications:
+
+<Accordion title="What GDPR compliance means for your data">
+- **Data subject rights** — you retain all rights under GDPR Articles 15–22, including access, rectification, and erasure.
+- **No third-country transfers** — data is never transferred to a country without an adequacy decision or equivalent safeguard.
+- **Data processing agreement** — a DPA is available for enterprise customers who need it for their own compliance documentation.
+- **Lawful basis** — Meliai processes request data solely to fulfil the inference service (contract performance); no secondary processing occurs.
+</Accordion>
+
+For compliance questions or to request a DPA, contact [privacy@meliai.ai](mailto:privacy@meliai.ai).
+
+## Verifying where your request was served
+
+Every API response includes an `environment_impact` block containing `provider_id` and `location` fields. You can use these to audit exactly which provider and country handled each request:
+
+```json
+{
+  "environment_impact": {
+    "provider_id": "hetzner-fsn1",
+    "location": "DE",
+    "energy_kwh": 0.00041,
+    "carbon_g_co2": 0.082,
+    "water_liters": 0.0003,
+    "renewable_percent": 78,
+    "pue": 1.2
+  }
+}
+```
+
+Log these fields alongside your application's own records to build an auditable trail of where every inference call was processed.
+
+<Note>
+Meliai is currently pursuing ISO 27001 certification. Once awarded, the certificate will be available on the [Trust page](https://meliai.ai/trust).
+</Note>

@@ -1,0 +1,157 @@
+---
+title: "Tool Calling and Function Calling with Meliai"
+sidebarTitle: "Tool Calling"
+description: "Define functions for Meliai models to call, then handle tool_call messages to build agents and structured workflows with any OpenAI-compatible model."
+---
+
+Tool calling — sometimes called function calling — lets a model signal that it wants to invoke a specific function in your application rather than generating a plain text reply. Your code executes the function, returns the result to the model in a follow-up message, and the model incorporates that result into its final response. This two-step pattern is the foundation for building agents, enriching responses with real-time data, and automating structured workflows. Meliai's implementation is fully compatible with the OpenAI tools interface, so existing tool-calling code points at Meliai with no changes beyond the `base_url` and API key.
+
+## Define Tools
+
+Pass a `tools` array to the chat completions request. Each element has `type: "function"` and a `function` object that describes the name, purpose, and expected parameters using a JSON Schema subset.
+
+```python Python
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get the current weather for a city",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string", "description": "City name"}
+                },
+                "required": ["city"],
+            },
+        },
+    }
+]
+```
+
+Write clear, specific `description` strings. The model uses these descriptions — not your code — to decide whether and when to call a tool, so precision here directly affects reliability.
+
+## Full Example
+
+The example below registers two tools, sends a user message, and inspects the model's response to determine whether a tool call was requested.
+
+```python Python
+import os
+import json
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get the current weather for a city",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string", "description": "City name"}
+                },
+                "required": ["city"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": "Search the web and return a list of relevant results",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query string"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+]
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[{"role": "user", "content": "What's the weather in Hamburg?"}],
+    tools=tools,
+    tool_choice="auto",
+)
+
+message = response.choices[0].message
+if message.tool_calls:
+    tool_call = message.tool_calls[0]
+    args = json.loads(tool_call.function.arguments)
+    print(f"Calling {tool_call.function.name} with {args}")
+    # Execute your function and send the result back (see next section)
+```
+
+## Sending Tool Results Back
+
+After you run the function, append the original assistant message and a new `tool` role message to the conversation, then make a second request. The model will use the tool output to generate its final reply.
+
+```python Python
+# 1. Capture the assistant's tool-call message
+assistant_message = response.choices[0].message
+
+# 2. Execute your function
+weather_result = {"temperature": "18°C", "condition": "Partly cloudy"}
+
+# 3. Build the follow-up messages list
+messages = [
+    {"role": "user", "content": "What's the weather in Hamburg?"},
+    assistant_message,                          # preserves tool_calls field
+    {
+        "role": "tool",
+        "tool_call_id": assistant_message.tool_calls[0].id,
+        "content": json.dumps(weather_result),
+    },
+]
+
+# 4. Send the second request — no tools array required for the final turn
+final_response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=messages,
+)
+
+print(final_response.choices[0].message.content)
+```
+
+Always pass the assistant message object (not a reconstructed dict) so that the `tool_calls` field is preserved exactly as returned by the API.
+
+## tool_choice Options
+
+The `tool_choice` parameter controls how the model decides whether to call a tool.
+
+<Accordion title="tool_choice values">
+
+| Value | Behaviour |
+|---|---|
+| `"auto"` | The model decides whether to call a tool or reply with text (default) |
+| `"none"` | The model will never call a tool — respond with text only |
+| `"required"` | The model must call at least one tool before replying |
+| `{"type": "function", "function": {"name": "get_weather"}}` | Force the model to call a specific function |
+
+</Accordion>
+
+Use `"required"` when you need a guaranteed structured output via a tool and want to avoid a plain-text fallback.
+
+## Checking Tool Calling Support
+
+Not every model supports tool calling. To check whether a specific model accepts the `tools` parameter, retrieve its metadata from the models endpoint and inspect `supported_parameters`.
+
+```bash curl
+curl https://api.meliai.ai/v1/models/<MODEL_ID> \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+Look for `"tools"` in the `supported_parameters` array of the response before building tool-calling workflows against a new model.
+
+<Note>
+  Use `GET /v1/models` to list all available models and filter by `supported_parameters` to find every model that supports tool calling. Models without `"tools"` in that list will return an error if you include a `tools` array in the request.
+</Note>

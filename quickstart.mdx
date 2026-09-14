@@ -1,47 +1,147 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Meliai in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Make your first Meliai API call using the OpenAI SDK. Get an API key, install the SDK, and run a real inference request in under five minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+Meliai is OpenAI-SDK-compatible, so you can go from zero to your first EU-routed inference call in just a few minutes. This guide walks you through getting an API key, installing the SDK, making a real request, and reading the response — including the environmental impact data that comes back with every completion.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Get an API key">
+    Head to [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys) and create a new key. Your key will look like `sk-mel-...`.
+
+    Store it as an environment variable so you never hard-code credentials in source files:
 
     ```bash
-    npm install your-package
+    export MELIAI_API_KEY="sk-mel-<YOUR_KEY>"
     ```
+
+    <Tip>
+      Add that line to your shell profile (`.bashrc`, `.zshrc`, etc.) so the variable persists across sessions.
+    </Tip>
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Install the OpenAI SDK">
+    Meliai is fully compatible with the official OpenAI SDK — no separate package required.
+
+    <CodeGroup>
+      ```bash Python
+      pip install openai
+      ```
+
+      ```bash Node.js
+      npm install openai
+      ```
+    </CodeGroup>
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
+  <Step title="Make your first call">
+    Point the SDK at Meliai by setting `base_url` to `https://api.meliai.ai/v1` and supplying your Meliai API key. Everything else stays exactly the same as any OpenAI SDK usage.
+
+    <CodeGroup>
+      ```python Python
+      import os
+      from openai import OpenAI
+
+      client = OpenAI(
+          api_key=os.environ["MELIAI_API_KEY"],
+          base_url="https://api.meliai.ai/v1",
+      )
+
+      response = client.chat.completions.create(
+          model="<MODEL_ID>",
+          messages=[{"role": "user", "content": "Name three European capitals."}],
+      )
+      print(response.choices[0].message.content)
+      ```
+
+      ```javascript Node.js
+      import OpenAI from "openai";
+
+      const client = new OpenAI({
+        apiKey: process.env.MELIAI_API_KEY,
+        baseURL: "https://api.meliai.ai/v1",
+      });
+
+      const response = await client.chat.completions.create({
+        model: "<MODEL_ID>",
+        messages: [{ role: "user", content: "Name three European capitals." }],
+      });
+      console.log(response.choices[0].message.content);
+      ```
+
+      ```bash curl
+      curl https://api.meliai.ai/v1/chat/completions \
+        -H "Authorization: Bearer $MELIAI_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "model": "<MODEL_ID>",
+          "messages": [{"role": "user", "content": "Name three European capitals."}]
+        }'
+      ```
+    </CodeGroup>
+
+    <Note>
+      Replace `<MODEL_ID>` with an actual model identifier from the Meliai catalog. You can browse models at [meliai.ai/hub](https://meliai.ai/hub) or fetch them programmatically with `GET /v1/models`. Model IDs support routing suffixes such as `:speed` or `:eco` — see the [Routing](/concepts/routing) page for details.
+    </Note>
+  </Step>
+
+  <Step title="Read the response">
+    Meliai returns a standard OpenAI-shaped response body, extended with two additional top-level fields: `environment_impact` and `billing_cost`.
+
+    ```json
+    {
+      "id": "chatcmpl-...",
+      "model": "<MODEL_ID>",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Berlin, Paris, Madrid."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 14,
+        "completion_tokens": 8,
+        "total_tokens": 22
+      },
+      "environment_impact": {
+        "energy_kwh": 0.00015,
+        "carbon_g_co2": 0.06,
+        "water_liters": 0.0002,
+        "renewable_percent": 85,
+        "pue": 1.18,
+        "provider_id": "ovhcloud",
+        "location": "FR"
+      },
+      "billing_cost": {
+        "energy": "0.0008",
+        "credits": "0.0",
+        "paid_with": "energy"
+      }
+    }
     ```
+
+    The `environment_impact` block tells you exactly how much energy, carbon, and water this specific request consumed, which EU provider served it, and what share of the facility's power came from renewables. The `billing_cost` block shows the cost broken down by energy charges and any credits applied.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Where to go next
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Routing" icon="shuffle" href="/concepts/routing">
+    Use `:speed`, `:price`, `:eco`, and `:batch` suffixes to control how Meliai routes your requests across providers.
+  </Card>
+  <Card title="Models" icon="microchip" href="/concepts/models">
+    Browse the full catalog of 60+ open-weight models and find the right one for your task.
+  </Card>
+  <Card title="Streaming" icon="wave-sine" href="/guides/streaming">
+    Enable token-by-token streaming responses with a single extra parameter.
+  </Card>
+  <Card title="Migrate from OpenAI" icon="right-left" href="/get-started/from-openai">
+    Already using OpenAI? See the exact two-line change needed to switch.
+  </Card>
+</CardGroup>

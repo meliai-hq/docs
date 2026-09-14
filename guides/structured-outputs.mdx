@@ -1,0 +1,103 @@
+---
+title: "Get Structured JSON Output from Meliai Models"
+sidebarTitle: "Structured Outputs"
+description: "Use response_format to enforce valid JSON or a strict JSON schema in Meliai chat completions, ideal for data extraction, classification, and automated pipelines."
+---
+
+Structured outputs give you machine-readable JSON directly from a model rather than freeform prose that you must parse yourself. This is particularly useful for data extraction pipelines, classification tasks, form filling, automated scoring, and any workflow where downstream code needs to consume the model's output programmatically. Meliai supports two levels of structure enforcement through the `response_format` parameter: a permissive JSON mode that guarantees valid JSON, and a strict schema mode that validates against a JSON Schema you supply.
+
+## JSON Mode
+
+Set `response_format` to `{"type": "json_object"}` to instruct the model to always respond with a valid JSON object. You are responsible for describing the expected shape in your system or user prompt — JSON mode only guarantees syntactic validity, not a particular structure.
+
+```python Python
+import json
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[
+        {"role": "system", "content": "You respond only with valid JSON."},
+        {"role": "user", "content": "Extract: name, country, population for Berlin."},
+    ],
+    response_format={"type": "json_object"},
+)
+
+data = json.loads(response.choices[0].message.content)
+print(data)
+# {"name": "Berlin", "country": "Germany", "population": 3645000}
+```
+
+Always include a clear instruction in the system or user message that specifies the expected keys. Without guidance, the model will produce valid JSON but the structure may vary between calls.
+
+## JSON Schema Mode
+
+Set `response_format` to `{"type": "json_schema", "json_schema": {...}}` to enforce a precise structure. The `json_schema` object requires a `name`, an optional `strict` flag, and a `schema` that follows the JSON Schema specification. When `strict: true`, the model is constrained to produce output that exactly matches the schema with no extra properties.
+
+```python Python
+import json
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[{"role": "user", "content": "Extract city info for Paris."}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "city_info",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "country": {"type": "string"},
+                    "population": {"type": "integer"},
+                },
+                "required": ["name", "country", "population"],
+                "additionalProperties": False,
+            },
+        },
+    },
+)
+
+data = json.loads(response.choices[0].message.content)
+print(data)
+# {"name": "Paris", "country": "France", "population": 2161000}
+```
+
+Setting `"additionalProperties": False` alongside `"strict": True` gives the strongest guarantee: the output will contain exactly the fields you declared and nothing else.
+
+## Choosing Between the Two Modes
+
+<Tabs>
+  <Tab title="JSON mode">
+    **Best for:** exploratory extraction, prompts where the schema may vary, or models that do not support strict JSON schema.
+
+    - Guarantees syntactically valid JSON
+    - Schema is described in natural language in the prompt
+    - Supported by a wider range of models
+  </Tab>
+  <Tab title="JSON Schema mode">
+    **Best for:** production pipelines, typed data models, or any workflow that must not handle unexpected keys.
+
+    - Guarantees both syntactic validity and structural conformance
+    - Schema is machine-readable and version-controllable
+    - Requires model support for `json_schema` response format
+  </Tab>
+</Tabs>
+
+<Note>
+  Not all models support strict JSON schema mode. Retrieve model metadata from `GET /v1/models/<MODEL_ID>` and check the `supported_parameters` array for `"response_format"` before using `json_schema` in production. Models that do not support it will fall back to best-effort JSON or return an error, depending on the model.
+</Note>

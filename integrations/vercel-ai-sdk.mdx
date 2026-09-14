@@ -1,0 +1,71 @@
+---
+title: "Use Meliai with the Vercel AI SDK"
+sidebarTitle: "Vercel AI SDK"
+description: "Integrate Meliai into Next.js and other Vercel applications using the AI SDK's OpenAI provider with a custom baseURL pointing to the Meliai API."
+---
+
+The Vercel AI SDK's OpenAI provider supports a custom `baseURL`, so you can route all inference through Meliai without changing your application logic. Create a single provider instance pointed at `https://api.meliai.ai/v1`, then use it anywhere you would normally reference an OpenAI model — streaming route handlers, server actions, `generateText`, `generateObject`, and more.
+
+<Steps>
+  <Step title="Install the AI SDK">
+    Add the core AI SDK package and the OpenAI provider to your project.
+
+    ```bash
+    npm install ai @ai-sdk/openai
+    ```
+  </Step>
+
+  <Step title="Create a Meliai provider">
+    Use `createOpenAI` from `@ai-sdk/openai` to build a reusable provider configured for Meliai. Export it from a shared module so you can import it across your app.
+
+    ```typescript
+    import { createOpenAI } from "@ai-sdk/openai";
+
+    const meliai = createOpenAI({
+      apiKey: process.env.MELIAI_API_KEY,
+      baseURL: "https://api.meliai.ai/v1",
+    });
+    ```
+  </Step>
+
+  <Step title="Use in a Next.js Route Handler">
+    Pass the Meliai provider and a model ID to `streamText` inside an App Router route handler. The response is a standard streaming data stream compatible with the `useChat` and `useCompletion` hooks on the client.
+
+    ```typescript
+    import { streamText } from "ai";
+    import { createOpenAI } from "@ai-sdk/openai";
+
+    const meliai = createOpenAI({
+      apiKey: process.env.MELIAI_API_KEY!,
+      baseURL: "https://api.meliai.ai/v1",
+    });
+
+    export async function POST(req: Request) {
+      const { messages } = await req.json();
+
+      const result = streamText({
+        model: meliai("<MODEL_ID>"),
+        messages,
+      });
+
+      return result.toDataStreamResponse();
+    }
+    ```
+  </Step>
+
+  <Step title="Add your environment variable">
+    Add your Meliai API key to your local environment file so Next.js can read it at runtime.
+
+    ```bash
+    MELIAI_API_KEY=sk-mel-...
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Add `MELIAI_API_KEY` to your Vercel project's environment variables before deploying. Go to **Project Settings → Environment Variables** in the Vercel dashboard and add the key for your production, preview, and development environments.
+</Note>
+
+<Tip>
+  Append a routing suffix to the model ID for provider selection — for example, `meliai("<MODEL_ID>:eco")` routes to the lowest-carbon available provider, and `meliai("<MODEL_ID>:speed")` prioritises the fastest response.
+</Tip>

@@ -1,0 +1,108 @@
+---
+title: "Authenticate Your Requests to the Meliai API"
+sidebarTitle: "Authentication"
+description: "Meliai uses API keys prefixed with sk-mel-. Pass your key as a Bearer token or x-api-key header on every request."
+---
+
+Every request to the Meliai API must be authenticated with an API key. Keys are tied to your account and control access to all endpoints — from chat completions to batch jobs. Meliai follows the same header conventions as OpenAI and Anthropic, so if you're migrating an existing client you only need to swap the key value and the base URL.
+
+## Getting an API key
+
+<Steps>
+  <Step title="Open the API keys page">
+    Go to [https://meliai.ai/account/api/keys](https://meliai.ai/account/api/keys) and sign in to your Meliai account.
+  </Step>
+  <Step title="Create a new key">
+    Click **Create API key**, give it a descriptive name (for example, `prod-backend` or `local-dev`), and confirm.
+  </Step>
+  <Step title="Copy your key immediately">
+    Your key is displayed **once**. Copy it now and store it somewhere safe — Meliai cannot show it to you again. If you lose it, you must create a new one.
+  </Step>
+</Steps>
+
+<Warning>
+API keys are shown only once at creation. Store your key in a password manager or secrets manager immediately. If you lose a key, revoke it and generate a replacement at [https://meliai.ai/account/api/keys](https://meliai.ai/account/api/keys).
+</Warning>
+
+## Using your API key
+
+Meliai accepts your key in either of two header formats — both work on every endpoint:
+
+| Header | Format |
+|---|---|
+| `Authorization` | `Bearer sk-mel-<KEY>` |
+| `x-api-key` | `sk-mel-<KEY>` |
+
+The following examples show how to authenticate with the OpenAI SDK (Python and Node.js) and with a raw HTTP request:
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],   # sk-mel-<KEY>
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="qwen/qwen3-235b-a22b",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,   // sk-mel-<KEY>
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "qwen/qwen3-235b-a22b",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen/qwen3-235b-a22b",
+    "messages": [{ "role": "user", "content": "Hello!" }]
+  }'
+```
+
+</CodeGroup>
+
+## Storing your key safely
+
+Keep your API key out of source code and version control. The recommended approach is to use an environment variable:
+
+```bash
+export MELIAI_API_KEY="sk-mel-..."
+```
+
+Then read it in your application with `os.environ["MELIAI_API_KEY"]` (Python) or `process.env.MELIAI_API_KEY` (Node.js), as shown in the examples above.
+
+<Accordion title="Additional key-storage options">
+- **`.env` files** — use a library such as `python-dotenv` or `dotenv` for Node.js, and add `.env` to your `.gitignore`.
+- **CI/CD secrets** — store the key as an encrypted secret in GitHub Actions, GitLab CI, or your deployment platform.
+- **Cloud secret managers** — AWS Secrets Manager, Google Secret Manager, Azure Key Vault, and HashiCorp Vault all support automated key rotation and fine-grained access control.
+</Accordion>
+
+If you believe a key has been exposed, rotate it immediately at [https://meliai.ai/account/api/keys](https://meliai.ai/account/api/keys). Revoked keys stop working instantly.
+
+## Auth errors
+
+| HTTP status | Error | Meaning |
+|---|---|---|
+| `401 Unauthorized` | `invalid_api_key` | The key is missing, malformed, or has been revoked. Check that you're sending the correct `sk-mel-<KEY>` value. |
+| `403 Forbidden` | `insufficient_scope` | The key exists but does not have permission for the requested endpoint or feature. Check the key's scope settings on the API keys page. |

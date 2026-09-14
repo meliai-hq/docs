@@ -1,0 +1,202 @@
+---
+title: "Files API — Upload and Manage Batch Input Files"
+sidebarTitle: "Files"
+description: "POST /v1/files uploads files for use with the Batch API. Manage uploads with list, retrieve, download, and delete endpoints."
+---
+
+The Files API provides storage for the JSONL input files that power Meliai's Batch API. Before you can create a batch job, you must upload a JSONL file containing all the individual inference requests you want to process. Meliai stores the file on your behalf, returns a `file_id`, and lets you list, inspect, download, and delete your files at any time. All files are scoped to your API key and never leave EU infrastructure.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/files | Upload a file |
+| GET | /v1/files | List files |
+| GET | /v1/files/{id} | Get file metadata |
+| GET | /v1/files/{id}/content | Download file content |
+| DELETE | /v1/files/{id} | Delete a file |
+
+---
+
+## Upload a File
+
+Upload a JSONL file that will serve as input to a batch job. The request must be sent as `multipart/form-data`.
+
+**`POST /v1/files`**
+
+<ParamField body="file" type="file" required>
+  The JSONL file to upload. Each line must be a valid JSON object representing a single inference request. See the [Batch API input format](/api-reference/batches#input-file-format) for the required schema.
+</ParamField>
+
+<ParamField body="purpose" type="string" required>
+  The intended use for the file. Currently the only accepted value is `"batch"`.
+</ParamField>
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/files \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -F purpose=batch \
+  -F file=@requests.jsonl
+```
+
+```python Python
+import openai
+
+client = openai.OpenAI(
+    api_key="sk-mel-<KEY>",
+    base_url="https://api.meliai.ai/v1",
+)
+
+with open("requests.jsonl", "rb") as f:
+    file_obj = client.files.create(file=f, purpose="batch")
+
+print(file_obj.id)  # file-abc123
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({
+  apiKey: "sk-mel-<KEY>",
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const fileObj = await client.files.create({
+  file: fs.createReadStream("requests.jsonl"),
+  purpose: "batch",
+});
+console.log(fileObj.id); // file-abc123
+```
+
+</CodeGroup>
+
+The response includes the `id` field you pass to `POST /v1/batches` as `input_file_id`.
+
+---
+
+## List Files
+
+Retrieve all files uploaded to your account, ordered by creation time.
+
+**`GET /v1/files`**
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/files \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+files = client.files.list()
+for f in files.data:
+    print(f.id, f.filename, f.status)
+```
+
+```javascript Node.js
+const files = await client.files.list();
+for (const f of files.data) {
+  console.log(f.id, f.filename, f.status);
+}
+```
+
+</CodeGroup>
+
+---
+
+## Get File Metadata
+
+Retrieve metadata for a specific file without downloading its content.
+
+**`GET /v1/files/{id}`**
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/files/file-abc123 \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+meta = client.files.retrieve("file-abc123")
+print(meta.filename, meta.bytes, meta.status)
+```
+
+```javascript Node.js
+const meta = await client.files.retrieve("file-abc123");
+console.log(meta.filename, meta.bytes, meta.status);
+```
+
+</CodeGroup>
+
+---
+
+## Download File Content
+
+Download the raw content of a file. Use this to retrieve output JSONL files once a batch job has completed.
+
+**`GET /v1/files/{id}/content`**
+
+<CodeGroup>
+
+```bash curl
+curl https://api.meliai.ai/v1/files/file-abc123/content \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -o results.jsonl
+```
+
+```python Python
+content = client.files.content("file-abc123")
+with open("results.jsonl", "wb") as f:
+    f.write(content.read())
+```
+
+```javascript Node.js
+const content = await client.files.content("file-abc123");
+const text = await content.text();
+require("fs").writeFileSync("results.jsonl", text);
+```
+
+</CodeGroup>
+
+---
+
+## Delete a File
+
+Permanently delete a file from your account. This action cannot be undone. Deleting a file that is referenced by an active batch job will cause that job to fail.
+
+**`DELETE /v1/files/{id}`**
+
+<CodeGroup>
+
+```bash curl
+curl -X DELETE https://api.meliai.ai/v1/files/file-abc123 \
+  -H "Authorization: Bearer $MELIAI_API_KEY"
+```
+
+```python Python
+client.files.delete("file-abc123")
+```
+
+```javascript Node.js
+await client.files.delete("file-abc123");
+```
+
+</CodeGroup>
+
+A successful deletion returns a confirmation object:
+
+```json
+{
+  "id": "file-abc123",
+  "object": "file",
+  "deleted": true
+}
+```
+
+<Warning>
+  Deleting an input file while a batch job referencing it is still `in_progress` will cause the batch to transition to `failed`. Always wait for batch jobs to complete before deleting their associated input files.
+</Warning>

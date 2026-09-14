@@ -1,0 +1,273 @@
+---
+title: "POST /v1/chat/completions — OpenAI-Compatible Chat"
+sidebarTitle: "Chat Completions"
+description: "POST /v1/chat/completions — generate chat responses with tools, vision, structured output, and streaming. OpenAI-compatible with Meliai routing and impact fields."
+---
+
+The `/v1/chat/completions` endpoint is the primary inference interface on Meliai. It accepts the same request shape as the OpenAI Chat Completions API, so you can migrate an existing integration by swapping `base_url` and your API key — no other code changes required. Every response includes `environment_impact` and `billing_cost` blocks, giving you per-call visibility into energy use, carbon emissions, and spend.
+
+## Endpoint
+
+```
+POST https://api.meliai.ai/v1/chat/completions
+```
+
+**Authorization:** `Bearer sk-mel-<KEY>` via `Authorization` header.
+
+---
+
+## Core Parameters
+
+<ParamField body="model" type="string" required>
+  The model ID to use for this request. Append a routing flavor suffix to control how Meliai selects a backend provider:
+
+  | Suffix | Behaviour |
+  |---|---|
+  | `:balanced` | Default. Balances speed, cost, and availability. |
+  | `:speed` | Routes to the fastest available provider. |
+  | `:price` | Routes to the lowest-cost provider. |
+  | `:eco` | Prefers providers running on renewable energy. |
+  | `:batch` | Queues the request for asynchronous batch processing. |
+
+  Example: `"meta-llama/Llama-3.3-70B-Instruct:speed"`
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  The conversation history as an ordered array of message objects. Each object must contain:
+  - `role` — `"system"`, `"user"`, `"assistant"`, or `"tool"`
+  - `content` — string, or an array of content parts (for vision or multi-modal inputs)
+</ParamField>
+
+<ParamField body="max_tokens" type="integer">
+  Maximum number of tokens to generate in the completion. The model may return fewer tokens if it reaches a natural stopping point first.
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature in the range `[0, 2]`. Higher values produce more varied output; lower values make responses more deterministic. Defaults to the model's built-in default.
+</ParamField>
+
+<ParamField body="top_p" type="number">
+  Nucleus sampling cutoff in the range `[0, 1]`. The model considers only the smallest set of tokens whose cumulative probability exceeds `top_p`. Default: `1`.
+</ParamField>
+
+<ParamField body="top_k" type="integer">
+  Restricts sampling to the top-K most probable tokens at each step. Availability depends on the underlying provider.
+</ParamField>
+
+<ParamField body="stream" type="boolean">
+  When `true`, the response is delivered as a series of Server-Sent Events (SSE), each containing a `data:` chunk in the same format as OpenAI streaming. Default: `false`.
+</ParamField>
+
+<ParamField body="stop" type="string | array">
+  One or more sequences at which the model will stop generating tokens. The stop sequence itself is not included in the output.
+</ParamField>
+
+<ParamField body="seed" type="integer">
+  Pass an integer to request deterministic sampling. Identical seeds produce identical outputs on a best-effort basis — exact reproducibility depends on the backend provider.
+</ParamField>
+
+<ParamField body="n" type="integer">
+  Number of independent completions to generate for the prompt. Accepts values in `[1, 10]`. Default: `1`. Note that higher values multiply token usage proportionally.
+</ParamField>
+
+<ParamField body="tools" type="array">
+  An array of tool definitions available to the model. Each tool must conform to the OpenAI function-calling schema, with `type: "function"` and a `function` object containing `name`, `description`, and `parameters`.
+</ParamField>
+
+<ParamField body="tool_choice" type="string | object">
+  Controls whether and how the model invokes tools. Pass `"auto"` (model decides), `"none"` (never call tools), `"required"` (always call at least one tool), or a specific function object such as `{"type": "function", "function": {"name": "my_fn"}}`.
+</ParamField>
+
+<ParamField body="response_format" type="object">
+  Constrains the output format:
+  - `{"type": "json_object"}` — guarantees valid JSON output.
+  - `{"type": "json_schema", "json_schema": {...}}` — constrains output to a specific JSON Schema.
+</ParamField>
+
+<ParamField body="reasoning_effort" type="string">
+  For reasoning-capable models, set the effort level: `"low"`, `"medium"`, or `"high"`. Higher effort increases thinking depth and latency.
+</ParamField>
+
+<ParamField body="preset" type="string">
+  Meliai-specific shorthand. Pass `"reasoning"` or `"non_reasoning"` to automatically apply sensible parameter defaults for the chosen model class without specifying individual sampling parameters.
+</ParamField>
+
+---
+
+## Examples
+
+<CodeGroup>
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[
+        {"role": "system", "content": "You are a concise assistant."},
+        {"role": "user", "content": "What is the capital of France?"},
+    ],
+)
+print(response.choices[0].message.content)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "<MODEL_ID>",
+  messages: [
+    { role: "system", content: "You are a concise assistant." },
+    { role: "user", content: "What is the capital of France?" },
+  ],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "<MODEL_ID>",
+    "messages": [
+      {"role": "system", "content": "You are a concise assistant."},
+      {"role": "user", "content": "What is the capital of France?"}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+### Streaming example
+
+To receive tokens as they are generated, set `stream: true`. The response is a sequence of SSE events; each `data:` line contains a JSON delta. The final event is `data: [DONE]`.
+
+<CodeGroup>
+
+```python Python
+for chunk in client.chat.completions.create(
+    model="<MODEL_ID>",
+    messages=[{"role": "user", "content": "Tell me about GDPR in two sentences."}],
+    stream=True,
+):
+    delta = chunk.choices[0].delta.content or ""
+    print(delta, end="", flush=True)
+```
+
+```javascript Node.js
+const stream = await client.chat.completions.create({
+  model: "<MODEL_ID>",
+  messages: [{ role: "user", content: "Tell me about GDPR in two sentences." }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+}
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+A successful non-streaming response returns HTTP `200` with the following JSON body.
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "created": 1720000000,
+  "model": "<MODEL_ID>",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 24,
+    "completion_tokens": 9,
+    "total_tokens": 33
+  },
+  "environment_impact": {
+    "energy_kwh": 0.000042,
+    "carbon_g_co2": 0.0031,
+    "water_liters": 0.00018,
+    "renewable_percent": 94,
+    "pue": 1.18,
+    "provider_id": "provider-eu-west",
+    "location": "Frankfurt, DE"
+  },
+  "billing_cost": {
+    "energy": 0.000021,
+    "credits": 0.00041,
+    "paid_with": "credits"
+  }
+}
+```
+
+### Response fields
+
+<ResponseField name="id" type="string">
+  Unique identifier for this completion, prefixed with `chatcmpl-`.
+</ResponseField>
+
+<ResponseField name="choices" type="array">
+  Array of completion objects. Each entry contains:
+  - `index` — zero-based position
+  - `message` — the generated message with `role` and `content`
+  - `finish_reason` — `"stop"`, `"length"`, `"tool_calls"`, or `"content_filter"`
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token counts for the request: `prompt_tokens`, `completion_tokens`, and `total_tokens`.
+</ResponseField>
+
+<ResponseField name="environment_impact" type="object">
+  Per-response environmental footprint of the inference run.
+
+  <Expandable title="Fields">
+    <ResponseField name="energy_kwh" type="number">Energy consumed in kilowatt-hours.</ResponseField>
+    <ResponseField name="carbon_g_co2" type="number">Carbon dioxide equivalent emissions in grams.</ResponseField>
+    <ResponseField name="water_liters" type="number">Estimated water consumption in liters.</ResponseField>
+    <ResponseField name="renewable_percent" type="number">Share of energy from renewable sources at the serving location.</ResponseField>
+    <ResponseField name="pue" type="number">Power Usage Effectiveness of the data centre.</ResponseField>
+    <ResponseField name="provider_id" type="string">Internal identifier of the EU provider that served the request.</ResponseField>
+    <ResponseField name="location" type="string">City and country of the serving data centre.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="billing_cost" type="object">
+  Itemised cost for this call.
+
+  <Expandable title="Fields">
+    <ResponseField name="energy" type="number">Energy component of the cost in EUR.</ResponseField>
+    <ResponseField name="credits" type="number">Total credits deducted.</ResponseField>
+    <ResponseField name="paid_with" type="string">Payment method used — typically `"credits"`.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+<Note>
+  All requests are processed on European infrastructure. Your data never leaves the EU, and it is never used to train models.
+</Note>

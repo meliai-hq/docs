@@ -1,0 +1,89 @@
+---
+title: "API Authentication — Pass Your Meliai API Key"
+sidebarTitle: "Authentication"
+description: "Meliai accepts API keys as a Bearer token or x-api-key header. Both formats work on every endpoint. Keys are created in the Meliai dashboard."
+---
+
+Every request to the Meliai API must include your API key. Meliai accepts two header formats — the standard `Authorization: Bearer` token used by OpenAI-compatible clients, and the `x-api-key` header used by Anthropic-compatible clients. Both headers are accepted on every endpoint, so you can use whichever format your existing SDK or HTTP client already sends.
+
+## Supported Header Formats
+
+Both of the following headers are equivalent and accepted on all Meliai endpoints:
+
+```
+Authorization: Bearer sk-mel-<YOUR_API_KEY>
+```
+
+```
+x-api-key: sk-mel-<YOUR_API_KEY>
+```
+
+Store your key in the `MELIAI_API_KEY` environment variable and reference it from your code — never hard-code it in source files.
+
+<Warning>
+  Never commit API keys to source control or include them in client-side code. Store keys in environment variables or a dedicated secrets manager such as AWS Secrets Manager, HashiCorp Vault, or your CI/CD platform's secret store.
+</Warning>
+
+## SDK and curl Examples
+
+The examples below show how to configure each client to point at the Meliai base URL and pass your key. Because Meliai is OpenAI-compatible, the standard `openai` SDK requires only a `base_url` swap.
+
+<CodeGroup>
+
+```python Python
+from openai import OpenAI
+import os
+
+client = OpenAI(
+    api_key=os.environ["MELIAI_API_KEY"],
+    base_url="https://api.meliai.ai/v1",
+)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.MELIAI_API_KEY,
+  baseURL: "https://api.meliai.ai/v1",
+});
+```
+
+```bash curl
+curl https://api.meliai.ai/v1/chat/completions \
+  -H "Authorization: Bearer $MELIAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+</CodeGroup>
+
+## Creating API Keys
+
+Generate and manage your API keys in the [Meliai dashboard](https://meliai.ai/account/api/keys). When you create a key, the full secret value is shown **only once** — copy it immediately and store it securely. If you lose a key, revoke it and generate a new one.
+
+<Steps>
+  <Step title="Open the API Keys page">
+    Navigate to [meliai.ai/account/api/keys](https://meliai.ai/account/api/keys) and sign in.
+  </Step>
+  <Step title="Create a new key">
+    Click **New API Key**, give it a descriptive name (for example, `prod-backend` or `dev-local`), and confirm.
+  </Step>
+  <Step title="Copy and store the key">
+    Copy the key immediately — it will not be shown again. Add it to your environment as `MELIAI_API_KEY`.
+  </Step>
+  <Step title="Revoke keys you no longer need">
+    Delete unused keys from the dashboard to reduce your attack surface. Revoking a key takes effect immediately.
+  </Step>
+</Steps>
+
+## Error Responses
+
+Authentication failures return a structured JSON error with one of the following HTTP status codes:
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| 401 | `AUTH_1001` | The API key is missing, malformed, or invalid. Check that your key starts with `sk-mel-` and that the `Authorization` header is present. |
+| 403 | `AUTH_1003` | The key is valid but lacks the scope required for this endpoint. Check the key's permissions in the dashboard. |
+
+See the [Errors](/api-reference/errors) page for the full error response shape and a complete list of error codes.

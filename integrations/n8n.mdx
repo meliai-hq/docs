@@ -1,0 +1,53 @@
+---
+title: "Automate AI Workflows with Meliai and n8n"
+sidebarTitle: "n8n"
+description: "Connect Meliai to n8n using the OpenAI Chat Model node. Set your API key and base URL once, then use any Meliai model in your n8n AI workflows."
+---
+
+n8n's OpenAI Chat Model node supports custom base URLs, which means you can point it at Meliai and immediately use any of Meliai's 60+ models in your automated workflows — no custom code required. Configure your credentials once, and every AI node in your n8n instance can route inference through sovereign European infrastructure.
+
+<Steps>
+  <Step title="Add an OpenAI Chat Model node">
+    Open your workflow in n8n and add an **OpenAI Chat Model** node. You'll find it in the node panel under **AI → Language Models**.
+  </Step>
+
+  <Step title="Create new OpenAI credentials">
+    In the node's credential selector, choose **Create new credential** and fill in the following fields:
+
+    | Field | Value |
+    |---|---|
+    | **API Key** | Your `sk-mel-...` key |
+    | **Base URL** | `https://api.meliai.ai/v1` |
+
+    Save the credential — you can reuse it across all OpenAI-compatible nodes in your instance.
+  </Step>
+
+  <Step title="Enter your model ID">
+    In the **Model** field of the Chat Model node, type the Meliai model ID you want to use. You can find available model IDs in the [models reference](/api-reference/models).
+  </Step>
+
+  <Step title="Connect to an AI Agent or Chain node">
+    Wire the Chat Model node into an **AI Agent**, **Basic LLM Chain**, or any other AI orchestration node in your workflow. The Chat Model node acts as the language model backend for whichever orchestrator you choose.
+  </Step>
+
+  <Step title="Test and activate your workflow">
+    Use **Execute Workflow** to run a test with sample input. Once the output looks correct, toggle the workflow to **Active** so it runs on your configured trigger.
+  </Step>
+</Steps>
+
+<Note>
+  All n8n AI features work with Meliai through the OpenAI-compatible endpoint — including **AI Agent**, **Basic LLM Chain**, **Summarization Chain**, **Question and Answer Chain**, and **Information Extractor**. Any node that accepts an OpenAI Chat Model credential will work.
+</Note>
+
+<Tip>
+  Append a routing suffix to the model ID in the Model field — for example, `<MODEL_ID>:eco` — to control how Meliai selects a provider for that node. Useful when you want to optimise different workflow branches for cost, speed, or carbon footprint independently.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Connect LangChain chains and agents to Meliai using `ChatOpenAI` with a custom `base_url`.
+  </Card>
+  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/vercel-ai-sdk">
+    Route Next.js streaming handlers through Meliai using the `@ai-sdk/openai` provider.
+  </Card>
+</CardGroup>

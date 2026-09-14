@@ -1,20 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Meliai",
+  "projectType": "api-service",
+  "projectName": "Meliai",
+  "projectDescription": "European sovereign AI inference API offering OpenAI- and Anthropic-compatible access to 60+ open-weight models, with intelligent routing, per-response environmental impact tracking, and automatic failover across 11+ EU providers.",
   "theme": "luma",
-  "colors": {
-    "primary": "#ef7025",
-    "light": "#eec9bc",
-    "dark": "#4fa1ab"
-  },
-  "favicon": "/favicon.svg",
-  "navbar": {
-    "primary": {
-      "type": "button",
-      "label": "Get API Key",
-      "href": "https://meliai.ai/account/api/keys"
-    }
-  },
+  "primaryColor": "#ef7025",
+  "lightColor": "#eec9bc",
+  "darkColor": "#4fa1ab",
   "navigation": {
     "tabs": [
       {
@@ -100,10 +91,36 @@
       }
     ]
   },
-  "footer": {
-    "socials": {
-      "discord": "https://discord.gg/meliai",
-      "github": "https://github.com/meliai"
-    }
-  }
+  "keyFeatures": [
+    "OpenAI- and Anthropic-compatible API — change one line of code to switch",
+    "60+ open-weight models (Llama, Mistral, DeepSeek, Qwen, FLUX, Whisper, and more)",
+    "11+ European providers across 8 countries — data never leaves the EU",
+    "Intelligent routing with flavors: balanced, speed, price, eco, batch",
+    "Per-response environmental impact data (carbon, energy, water, PUE)",
+    "Automatic failover across providers for high availability",
+    "Batch API for async, high-volume, cost-efficient workloads",
+    "Tool calling, vision, structured outputs, and streaming support",
+    "GDPR-compliant — no training on customer data"
+  ],
+  "publicApiSurface": [
+    "POST /v1/chat/completions",
+    "POST /v1/responses",
+    "POST /v1/messages",
+    "POST /v1/messages/count_tokens",
+    "POST /v1/embeddings",
+    "POST /v1/rerank",
+    "POST /v1/images/generations",
+    "POST /v1/audio/transcriptions",
+    "GET /v1/models",
+    "GET /v1/models/{id}",
+    "POST /v1/batches",
+    "GET /v1/batches",
+    "GET /v1/batches/{id}",
+    "POST /v1/batches/{id}/cancel",
+    "POST /v1/files",
+    "GET /v1/files",
+    "GET /v1/files/{id}",
+    "GET /v1/files/{id}/content",
+    "DELETE /v1/files/{id}"
+  ]
 }
